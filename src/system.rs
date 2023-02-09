@@ -17,21 +17,28 @@ pub enum Action {
     RotateRad(f32),
     /// Rotate the Cursor by an angle given in degrees
     RotateDeg(f32),
-    /// Push a copy of the Cursor to the cursor stack
+    /// Push a copy of the Cursor to self.cursors
     PushCursor,
-    /// Pop the top item of the cursor stack and replace the Cursor with it
+    /// Pop the top item of self.cursors and replace the Cursor with it
     PopCursor,
-    /// Save the position of the Cursor to self.dots
-    Dot,
+    /// Save the position of the Cursor to self.positions
+    PushPosition,
+    /// Pop the top item of self.cursors and replace the Cursor's position with it
+    PopPosition,
+    /// Save the angle of the Cursor to self.angles
+    PushAngle,
+    /// Pop the top item of self.angles and replace the Cursor's angle with it
+    PopAngle,
 }
 
 ///
 pub struct LSystem {
     expression: Box<dyn Iterator<Item = char>>,
     actions: HashMap<char, Action>,
-    cursor_stack: Vec<Cursor>,
+    cursors: Vec<Cursor>,
     pub segments: Vec<Segment>,
-    pub dots: Vec<Vec2>,
+    pub positions: Vec<Vec2>,
+    pub angles: Vec<Vec2>,
     cursor: Cursor,
 }
 
@@ -44,9 +51,10 @@ impl LSystem {
         LSystem {
             expression,
             actions,
-            cursor_stack: Vec::new(),
+            cursors: Vec::new(),
             segments: Vec::new(),
-            dots: Vec::new(),
+            positions: Vec::new(),
+            angles: Vec::new(),
             cursor,
         }
     }
@@ -70,11 +78,25 @@ impl LSystem {
                     Action::MoveForward(dist) => self.cursor.forward(*dist),
                     Action::RotateRad(radians) => self.cursor.rotate(*radians),
                     Action::RotateDeg(degrees) => self.cursor.rotate_degrees(*degrees),
-                    Action::PushCursor => self.cursor_stack.push(self.cursor),
+                    Action::PushCursor => self.cursors.push(self.cursor),
                     Action::PopCursor => {
-                        self.cursor = self.cursor_stack.pop().expect("pop from empty stack")
+                        self.cursor = self
+                            .cursors
+                            .pop()
+                            .expect("tried to pop from self.cursors when it was empty")
                     }
-                    Action::Dot => self.dots.push(self.cursor.get_position()),
+                    Action::PushPosition => self.positions.push(self.cursor.get_position()),
+                    Action::PopPosition => self.cursor.set_position(
+                        self.positions
+                            .pop()
+                            .expect("tried to pop from self.positions when it was empty"),
+                    ),
+                    Action::PushAngle => self.angles.push(self.cursor.get_angle()),
+                    Action::PopAngle => self.cursor.set_angle(
+                        self.angles
+                            .pop()
+                            .expect("tried to pop from self.angles when it was empty"),
+                    ),
                 }
                 Some(*a)
             } else {
