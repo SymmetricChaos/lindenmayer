@@ -15,10 +15,16 @@ pub enum Action {
     MoveForward(f32),
     /// Move the Cursor forward and save a Segment representing a line between the positions to self.segments
     DrawForward(f32),
+    /// Move the Cursor of the specificed location
+    MoveTo(Vec2),
+    /// Move the Cursor of the specificed location and save a Segment representing a line between the positions to self.segments
+    DrawTo(Vec2),
     /// Rotate the Cursor by an angle given in radians
     RotateRad(f32),
     /// Rotate the Cursor by an angle given in degrees
     RotateDeg(f32),
+    /// Set the Cursor angle to the given value, which is normalized automatically
+    SetAngle(Vec2),
     /// Push a copy of the Cursor to self.cursors
     PushCursor,
     /// Pop the top item of self.cursors and replace the Cursor with it
@@ -68,17 +74,21 @@ impl LSystem {
             if let Some(a) = self.actions.get(&c) {
                 match a {
                     Action::DrawForward(dist) => {
-                        let mut new_cursor = self.cursor;
-                        new_cursor.forward(*dist);
-                        self.segments.push(Segment::from((
-                            self.cursor.get_position(),
-                            new_cursor.get_position(),
-                        )));
-                        self.cursor = new_cursor;
+                        let old_pos = self.cursor.get_position();
+                        self.cursor.forward(*dist);
+                        self.segments
+                            .push(Segment::from((old_pos, self.cursor.get_position())));
                     }
                     Action::MoveForward(dist) => self.cursor.forward(*dist),
+                    Action::DrawTo(pos) => {
+                        let old_pos = self.cursor.get_position();
+                        self.cursor.set_position(*pos);
+                        self.segments.push(Segment::from((old_pos, *pos)));
+                    }
+                    Action::MoveTo(pos) => self.cursor.set_position(*pos),
                     Action::RotateRad(radians) => self.cursor.rotate(*radians),
                     Action::RotateDeg(degrees) => self.cursor.rotate_degrees(*degrees),
+                    Action::SetAngle(angle) => self.cursor.set_angle(*angle),
                     Action::PushCursor => self.cursors.push(self.cursor),
                     Action::PopCursor => {
                         self.cursor = self
@@ -98,7 +108,7 @@ impl LSystem {
                             .pop()
                             .expect("tried to pop from self.angles when it was empty"),
                     ),
-                    _ => (),
+                    Action::None | Action::Unknown => (),
                 }
                 Some(*a)
             } else {
