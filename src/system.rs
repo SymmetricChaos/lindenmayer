@@ -9,7 +9,9 @@ use crate::{cursor::Cursor, segment::Segment};
 pub enum Action {
     /// Do nothing
     None,
-    /// Move the Cursor forward
+    /// Do nothing but report that symbol isn't recognized
+    Unknown,
+    /// Move the Cursor forward the specified distance
     MoveForward(f32),
     /// Move the Cursor forward and save a Segment representing a line between the positions to self.segments
     DrawForward(f32),
@@ -31,12 +33,12 @@ pub enum Action {
     PopAngle,
 }
 
-///
+/// A Lindenmayer System that can be interpreted as a series of actions in 2D space
 pub struct LSystem {
     expression: Box<dyn Iterator<Item = char>>,
     actions: HashMap<char, Action>,
-    cursors: Vec<Cursor>,
     pub segments: Vec<Segment>,
+    pub cursors: Vec<Cursor>,
     pub positions: Vec<Vec2>,
     pub angles: Vec<Vec2>,
     cursor: Cursor,
@@ -51,8 +53,8 @@ impl LSystem {
         LSystem {
             expression,
             actions,
-            cursors: Vec::new(),
             segments: Vec::new(),
+            cursors: Vec::new(),
             positions: Vec::new(),
             angles: Vec::new(),
             cursor,
@@ -65,7 +67,6 @@ impl LSystem {
         if let Some(c) = self.expression.next() {
             if let Some(a) = self.actions.get(&c) {
                 match a {
-                    Action::None => (),
                     Action::DrawForward(dist) => {
                         let mut new_cursor = self.cursor;
                         new_cursor.forward(*dist);
@@ -97,10 +98,11 @@ impl LSystem {
                             .pop()
                             .expect("tried to pop from self.angles when it was empty"),
                     ),
+                    _ => (),
                 }
                 Some(*a)
             } else {
-                panic!("unknown character encountered in expression: {c}")
+                Some(Action::Unknown)
             }
         } else {
             None
