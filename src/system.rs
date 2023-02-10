@@ -40,23 +40,23 @@ pub enum Action {
 }
 
 /// A Lindenmayer System that can be interpreted as a series of actions in 2D space
-pub struct LSystem {
+pub struct LSystemReader {
     expression: Box<dyn Iterator<Item = char>>,
     actions: HashMap<char, Action>,
     pub segments: Vec<Segment>,
     pub cursors: Vec<Cursor>,
     pub positions: Vec<Vec2>,
     pub angles: Vec<Vec2>,
-    cursor: Cursor,
+    pub cursor: Cursor,
 }
 
-impl LSystem {
+impl LSystemReader {
     pub fn new(
         expression: Box<dyn Iterator<Item = char>>,
         actions: HashMap<char, Action>,
         cursor: Cursor,
     ) -> Self {
-        LSystem {
+        LSystemReader {
             expression,
             actions,
             segments: Vec::new(),

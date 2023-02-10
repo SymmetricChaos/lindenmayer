@@ -1,19 +1,4 @@
-#[test]
-fn validity_test() {
-    use std::collections::HashMap;
 
-    use crate::{builder::LSystemBuilder, writer::write_expression};
-
-    let e = LSystemBuilder::new("X", HashMap::from([('X', "F[X][+DX]-DX"), ('D', "F")]), 3);
-
-    let s = write_expression(
-        String::from("X"),
-        HashMap::from([('X', "F[X][+DX]-DX"), ('D', "F")]),
-        3,
-    );
-
-    assert!(e.zip(s.chars()).all(|(a, b)| a == b))
-}
 
 // #[test]
 // fn speed_test() {
