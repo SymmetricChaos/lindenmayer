@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use glam::Vec2;
 
-use crate::{cursor::Cursor, segment::Segment};
+use crate::{builder::LSystemBuilder, cursor::Cursor, segment::Segment};
 
 /// Actions when reading the L-System
 #[derive(Debug, Copy, Clone)]
@@ -42,8 +42,8 @@ pub enum Action {
 }
 
 /// Interpret a sequence of symbols as actions in 2D space.
-pub struct LSystemReader {
-    expression: Box<dyn Iterator<Item = char>>,
+pub struct LSystemReader<'a> {
+    expression: LSystemBuilder<'a>,
     actions: HashMap<char, Action>,
     pub segments: Vec<Segment>,
     pub cursors: Vec<Cursor>,
@@ -52,9 +52,9 @@ pub struct LSystemReader {
     pub cursor: Cursor,
 }
 
-impl LSystemReader {
+impl<'a> LSystemReader<'a> {
     pub fn new(
-        expression: Box<dyn Iterator<Item = char>>,
+        expression: LSystemBuilder<'a>,
         actions: HashMap<char, Action>,
         cursor: Cursor,
     ) -> Self {
@@ -120,4 +120,30 @@ impl LSystemReader {
             None
         }
     }
+}
+
+#[test]
+fn from_builder() {
+    use std::collections::HashMap;
+
+    use crate::builder::LSystemBuilder;
+
+    let axiom = "X";
+    let rules = HashMap::from([('X', "F[X][+DX]-DX"), ('D', "F")]);
+    let depth = 3;
+
+    let e = LSystemBuilder::new(axiom, rules, depth);
+
+    let actions = HashMap::from([
+        ('X', Action::None),
+        ('D', Action::PushPosition),
+        ('F', Action::DrawForward(40.0)),
+        ('+', Action::RotateDeg(-25.0)),
+        ('-', Action::RotateDeg(25.0)),
+        ('[', Action::PushCursor),
+        (']', Action::PopCursor),
+    ]);
+    let cursor = Cursor::new((0.0, -200.0), (0.0, 1.0));
+
+    let _ = LSystemReader::new(e, actions, cursor);
 }
