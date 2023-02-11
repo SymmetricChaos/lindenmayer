@@ -6,7 +6,7 @@
 //         system::{Action, LSystemReader},
 //         writer::write_lsystem,
 //     };
-//     use get_size::GetSize;
+//     //use get_size::GetSize;
 //     use std::collections::HashMap;
 //     use std::time::Instant;
 
@@ -25,7 +25,7 @@
 //     let depth = 12;
 
 //     let s: Vec<char> = write_lsystem("X", &rules, depth).chars().collect();
-//     let s_memory_usage = s.get_heap_size();
+//     //let s_memory_usage = s.get_heap_size();
 
 //     let e = LSystemBuilder::new(axiom, rules, depth);
 //     //let e_memory_usage = e.get_heap_size();

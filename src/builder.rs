@@ -12,7 +12,6 @@ enum OneOrMany<'a> {
 /// let builder = LSystemBuilder::new("X", HashMap::from([('X', "F[X][+DX]-DX"), ('D', "F")]), 2);
 /// assert_eq!(builder.collect::<String>(),"F[F[X][+DX]-DX][+FF[X][+DX]-DX]-FF[X][+DX]-DX");
 /// ```
-
 pub struct LSystemBuilder<'a> {
     rules: HashMap<char, &'a str>,
     depth: usize,
