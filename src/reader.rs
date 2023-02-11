@@ -11,6 +11,8 @@ pub enum Action {
     None,
     /// Do nothing but report that symbol isn't recognized
     Unknown,
+    /// Custom action
+    Custom(&'static str),
     /// Move the Cursor forward the specified distance
     MoveForward(f32),
     /// Move the Cursor forward and save a Segment representing a line between the positions to self.segments
@@ -39,7 +41,7 @@ pub enum Action {
     PopAngle,
 }
 
-/// A Lindenmayer System that can be interpreted as a series of actions in 2D space
+/// Interpret a sequence of symbols as actions in 2D space.
 pub struct LSystemReader {
     expression: Box<dyn Iterator<Item = char>>,
     actions: HashMap<char, Action>,
@@ -108,7 +110,7 @@ impl LSystemReader {
                             .pop()
                             .expect("tried to pop from self.angles when it was empty"),
                     ),
-                    Action::None | Action::Unknown => (),
+                    Action::None | Action::Unknown | Action::Custom(_) => (),
                 }
                 Some(*a)
             } else {
