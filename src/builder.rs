@@ -1,8 +1,5 @@
 use std::collections::HashMap;
 
-use rand::{seq::SliceRandom, SeedableRng};
-use rand_xoshiro::Xoroshiro128StarStar;
-
 enum OneOrMany<'a> {
     One(char),
     Many(std::str::Chars<'a>),
@@ -15,10 +12,12 @@ enum OneOrMany<'a> {
 /// let builder = LSystemBuilder::new("X", HashMap::from([('X', "F[X][+DX]-DX"), ('D', "F")]), 2);
 /// assert_eq!(builder.collect::<String>(),"F[F[X][+DX]-DX][+FF[X][+DX]-DX]-FF[X][+DX]-DX");
 /// ```
+
 pub struct LSystemBuilder<'a> {
     rules: HashMap<char, &'a str>,
     depth: usize,
     layers: Vec<std::str::Chars<'a>>,
+    active_layer: usize,
 }
 
 impl<'a> LSystemBuilder<'a> {
@@ -30,6 +29,7 @@ impl<'a> LSystemBuilder<'a> {
             rules,
             depth,
             layers,
+            active_layer: depth - 1,
         }
     }
 
@@ -46,11 +46,9 @@ impl<'a> Iterator for LSystemBuilder<'_> {
     type Item = char;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let mut ptr = 1_usize;
-
         loop {
             // If the pointer has moved too far then we're out of characters
-            if ptr > self.depth {
+            if self.active_layer > self.depth {
                 return None;
             } else {
                 // If the first iterator has more characters use them
@@ -60,15 +58,15 @@ impl<'a> Iterator for LSystemBuilder<'_> {
                     // Otherwise check the iterator pointed to amd try to get the next character
                     // If it is a ternimal symbol then we can short circuit and just return it
                     // Otherwise load the iterator before it and move the pointer back
-                    if let Some(c) = self.layers[ptr].next() {
+                    if let Some(c) = self.layers[self.active_layer].next() {
                         match self.chars_from_rules(&c) {
                             OneOrMany::One(c) => return Some(c),
-                            OneOrMany::Many(cs) => self.layers[ptr - 1] = cs,
+                            OneOrMany::Many(cs) => self.layers[self.active_layer - 1] = cs,
                         }
-                        ptr -= 1
+                        self.active_layer -= 1
                     // If the iterator is empty move the pointer up
                     } else {
-                        ptr += 1
+                        self.active_layer += 1
                     }
                 }
             }
@@ -76,85 +74,85 @@ impl<'a> Iterator for LSystemBuilder<'_> {
     }
 }
 
-/// Memory efficient stochastic L-System constructor.
-pub struct LSystemBuilderStochastic<'a> {
-    rules: HashMap<char, Vec<(&'a str, f32)>>,
-    depth: usize,
-    layers: Vec<std::str::Chars<'a>>,
-    rng: Xoroshiro128StarStar,
-}
+// /// Memory efficient stochastic L-System constructor.
+// pub struct LSystemBuilderStochastic<'a> {
+//     rules: HashMap<char, Vec<(&'a str, f32)>>,
+//     depth: usize,
+//     layers: Vec<std::str::Chars<'a>>,
+//     rng: Xoroshiro128StarStar,
+// }
 
-impl<'a> LSystemBuilderStochastic<'a> {
-    pub fn new(axiom: &'a str, rules: HashMap<char, Vec<(&'a str, f32)>>, depth: usize) -> Self {
-        let mut layers = vec!["".chars(); depth + 1];
-        layers[depth] = axiom.chars();
-        let rng = Xoroshiro128StarStar::from_entropy();
+// impl<'a> LSystemBuilderStochastic<'a> {
+//     pub fn new(axiom: &'a str, rules: HashMap<char, Vec<(&'a str, f32)>>, depth: usize) -> Self {
+//         let mut layers = vec!["".chars(); depth + 1];
+//         layers[depth] = axiom.chars();
+//         let rng = Xoroshiro128StarStar::from_entropy();
 
-        Self {
-            rules,
-            depth,
-            layers,
-            rng,
-        }
-    }
+//         Self {
+//             rules,
+//             depth,
+//             layers,
+//             rng,
+//         }
+//     }
 
-    pub fn new_with_seed_from_u64(
-        axiom: &'a str,
-        rules: HashMap<char, Vec<(&'a str, f32)>>,
-        depth: usize,
-        seed: u64,
-    ) -> Self {
-        let mut layers = vec!["".chars(); depth + 1];
-        layers[depth] = axiom.chars();
-        let rng = Xoroshiro128StarStar::seed_from_u64(seed);
+//     pub fn new_with_seed_from_u64(
+//         axiom: &'a str,
+//         rules: HashMap<char, Vec<(&'a str, f32)>>,
+//         depth: usize,
+//         seed: u64,
+//     ) -> Self {
+//         let mut layers = vec!["".chars(); depth + 1];
+//         layers[depth] = axiom.chars();
+//         let rng = Xoroshiro128StarStar::seed_from_u64(seed);
 
-        Self {
-            rules,
-            depth,
-            layers,
-            rng,
-        }
-    }
+//         Self {
+//             rules,
+//             depth,
+//             layers,
+//             rng,
+//         }
+//     }
 
-    fn chars_from_rules(&mut self, c: &char) -> OneOrMany<'a> {
-        if let Some(s) = self.rules.get(&c) {
-            match s.choose_weighted(&mut self.rng, |item| item.1) {
-                Ok(s) => OneOrMany::Many(s.0.chars()),
-                Err(e) => panic!("{}", e.to_string()),
-            }
-        } else {
-            OneOrMany::One(*c)
-        }
-    }
-}
+//     fn chars_from_rules(&mut self, c: &char) -> OneOrMany<'a> {
+//         if let Some(s) = self.rules.get(&c) {
+//             match s.choose_weighted(&mut self.rng, |item| item.1) {
+//                 Ok(s) => OneOrMany::Many(s.0.chars()),
+//                 Err(e) => panic!("{}", e.to_string()),
+//             }
+//         } else {
+//             OneOrMany::One(*c)
+//         }
+//     }
+// }
 
-impl<'a> Iterator for LSystemBuilderStochastic<'_> {
-    type Item = char;
+// impl<'a> Iterator for LSystemBuilderStochastic<'_> {
+//     type Item = char;
 
-    fn next(&mut self) -> Option<Self::Item> {
-        let mut ptr = 1_usize;
+//     fn next(&mut self) -> Option<Self::Item> {
+//         let mut self.active_layer = 1_usize;
 
-        loop {
-            if ptr > self.depth {
-                return None;
-            } else {
-                if let Some(c) = self.layers[0].next() {
-                    return Some(c);
-                } else {
-                    if let Some(c) = self.layers[ptr].next() {
-                        match self.chars_from_rules(&c) {
-                            OneOrMany::One(c) => return Some(c),
-                            OneOrMany::Many(cs) => self.layers[ptr - 1] = cs,
-                        }
-                        ptr -= 1
-                    } else {
-                        ptr += 1
-                    }
-                }
-            }
-        }
-    }
-}
+//         loop {
+//             if self.active_layer > self.depth {
+//                 return None;
+//             } else {
+//                 if let Some(c) = self.layers[0].next() {
+//                     return Some(c);
+//                 } else {
+//                     if let Some(c) = self.layers[self.active_layer].next() {
+//                         match self.chars_from_rules(&c) {
+//                             OneOrMany::One(c) => return Some(c),
+//                             OneOrMany::Many(cs) => self.layers[self.active_layer - 1] = cs,
+//                         }
+//                         self.active_layer -= 1
+//                     } else {
+//                         self.active_layer += 1
+//                     }
+//                 }
+//             }
+//         }
+//     }
+// }
 
 #[test]
 fn validity_test() {
