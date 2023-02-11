@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use rand::{seq::SliceRandom, Rng};
 
-pub fn write_expression(axiom: &str, rules: &HashMap<char, &str>, depth: usize) -> String {
+pub fn write_lsystem(axiom: &str, rules: &HashMap<char, &str>, depth: usize) -> String {
     let mut expression = String::from(axiom);
     for _ in 0..depth {
         let mut new = String::new();
@@ -18,7 +18,7 @@ pub fn write_expression(axiom: &str, rules: &HashMap<char, &str>, depth: usize) 
     expression
 }
 
-pub fn write_expression_stochastic<R: Rng>(
+pub fn write_lsystem_stochastic<R: Rng>(
     axiom: &str,
     rules: &HashMap<char, Vec<(&str, f32)>>,
     depth: usize,
