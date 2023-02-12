@@ -30,15 +30,15 @@ More complex L-Systems have more symbols and more rules. Importantly these syste
 ```rust
 let axiom = "X";
 let rules = HashMap::from([
-    ('X', "F[X][+DX]-DX"), 
-    ('D', "F")]);
+    ('X', "F[X][+FX]-FX"), 
+]);
 let system = LSystemBuilder::new(axiom, rules, depth: 3);
 ```
 
 Here the symbols "F", "[", "]", "+", "-" are all terminals, they do not change when the rules are applied although new ones can be added by other rules. The string that is produced by this system is quite long.
 
-- F[F[F[X][+DX]-DX][+FF[X][+DX]-DX]-FF[X][+DX]-DX][+FF[F[X][+DX]-DX][+FF[X][+DX]-DX]-FF[X][+DX]-DX]-FF[F[X][+DX]-DX][+FF[X][+DX]-DX]-FF[X][+DX]-DX
+- F[F[F[X][+FX]-FX][+FF[X][+FX]-FX]-FF[X][+FX]-FX][+FF[F[X][+FX]-FX][+FF[X][+FX]-FX]-FF[X][+FX]-FX]-FF[F[X][+FX]-FX][+FF[X][+FX]-FX]-FF[X][+FX]-FX
 
 Suitably interpreted this string can produce an image that looks a bit like a tree.
 
-https://github.com/SymmetricChaos/lindenmayer/blob/master/tree.mp4
+https://github.com/SymmetricChaos/lindenmayer/blob/master/tree.png
