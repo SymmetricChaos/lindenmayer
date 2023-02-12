@@ -129,15 +129,14 @@ fn from_builder() {
     use crate::builder::LSystemBuilder;
 
     let axiom = "X";
-    let rules = HashMap::from([('X', "F[X][+DX]-DX"), ('D', "F")]);
+    let rules = HashMap::from([('X', "F[X][+FX]-FX")]);
     let depth = 3;
 
     let e = LSystemBuilder::new(axiom, rules, depth);
 
     let actions = HashMap::from([
         ('X', Action::None),
-        ('D', Action::PushPosition),
-        ('F', Action::DrawForward(40.0)),
+        ('F', Action::DrawForward(60.0)),
         ('+', Action::RotateDeg(-25.0)),
         ('-', Action::RotateDeg(25.0)),
         ('[', Action::PushCursor),

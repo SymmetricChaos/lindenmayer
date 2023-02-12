@@ -1,5 +1,6 @@
 use glam::Vec2;
 
+/// A simple line segment in 2D space.
 #[derive(Debug, Copy, Clone)]
 pub struct Segment {
     pub start: Vec2,

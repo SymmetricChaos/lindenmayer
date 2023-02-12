@@ -12,7 +12,7 @@ As an introduction consider the original L-System which uses only the symbols "A
 4. ABAABABA
 5. ABAABABAABAAB
 
-We can represent this system using `lindenmayer` as follows.
+We can represent this system using lindenmayer as follows.
 
 ```rust
 use lindenmayer::LSystemBuilder;
@@ -25,7 +25,7 @@ let system = LSystemBuilder::new(axiom, rules, depth: 5);
 
 The `LSystemBuilder` struct is an iterator that will produce the symbols from line 5 from the sequence.
 
-More complex L-Systems have more symbols and more rules. Importantly these systems can contain *terminal symbols* which are symbols that do not change when the rules are applied. Due to how `LSystemBuilder` is implemented it is best to simply not include a rule for these symbols and instead leave their status as terminal symbols implied. Consider a more complex L-System in which there are many more symbols than rules.
+More complex L-Systems have more symbols and more rules. Importantly these systems can contain *terminal symbols* which are symbols that do not change when the rules are applied or, equivalently, have a rule that turns them in themselves like "C" ⇒ "C" (C becomes C). Due to how `LSystemBuilder` is implemented it is best to simply not include a rule for these symbols at all. Consider a more complex L-System in which there are many more symbols than rules.
 
 ```rust
 let axiom = "X";
@@ -35,10 +35,28 @@ let rules = HashMap::from([
 let system = LSystemBuilder::new(axiom, rules, depth: 3);
 ```
 
-Here the symbols "F", "[", "]", "+", "-" are all terminals, they do not change when the rules are applied although new ones can be added by other rules. The string that is produced by this system is quite long.
+Here the symbols "F", "[", "]", "+", "-" are all implicitly terminals because no rules exists for them. Although they are added to the resulting string by the "X" rule, once they are introduced they never turn into anything else. The string that is produced by this system is quite long.
 
 - F[F[F[X][+FX]-FX][+FF[X][+FX]-FX]-FF[X][+FX]-FX][+FF[F[X][+FX]-FX][+FF[X][+FX]-FX]-FF[X][+FX]-FX]-FF[F[X][+FX]-FX][+FF[X][+FX]-FX]-FF[X][+FX]-FX
 
 Suitably interpreted this string can produce an image that looks a bit like a tree.
 
-![a tree](https://github.com/SymmetricChaos/lindenmayer/blob/master/tree.png)
+![created with lindenmayer and nannou](https://github.com/SymmetricChaos/lindenmayer/blob/master/tree.png)
+
+To faciliate this lindenmayer includes the `LSystemReader` struct which takes in the builder, actions to interpret the symbols, and [a cursor](https://en.wikipedia.org/wiki/Turtle_graphics). The `LSystemReader` will then follow the instructions to move the cursor through 2D space according to the actions described. The image above was generated using the reader below and then drawn using nannou.
+
+```rust
+use lindenmayer::{Action, LSystemReader, Cursor};
+
+let actions = HashMap::from([
+    ('X', Action::None),
+    ('F', Action::DrawForward(60.0)),
+    ('+', Action::RotateDeg(-25.0)),
+    ('-', Action::RotateDeg(25.0)),
+    ('[', Action::PushCursor),
+    (']', Action::PopCursor),
+]);
+let cursor = Cursor::new((0.0, -200.0), (0.0, 1.0));
+let reader = LSystemReader::new(system, actions, cursor)
+```
+

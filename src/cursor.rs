@@ -1,5 +1,6 @@
 use glam::Vec2;
 
+/// A simple cursor with a position and directions in 2D space. When creating, setting, or rotating the angle if it cannot be normalized the operation panics at runtime.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Cursor {
     position: Vec2,

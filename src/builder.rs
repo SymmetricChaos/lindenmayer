@@ -5,7 +5,7 @@ enum OneOrMany<'a> {
     Many(std::str::Chars<'a>),
 }
 
-/// Memory efficient L-System constructor.
+/// Efficient L-System constructor that generate symbols one by one rather than building the entire String in memory. This is most useful if one wants to try many different L-Systems or generate them dynamically at runtime.
 /// ```
 /// # use std::collections::HashMap;
 /// # use lindenmayer::builder::LSystemBuilder;
@@ -57,7 +57,7 @@ impl<'a> Iterator for LSystemBuilder<'_> {
                 } else {
                     // Otherwise check the iterator pointed to amd try to get the next character
                     // If it is a ternimal symbol then we can short circuit and just return it
-                    // Otherwise load the iterator before it and move the pointer back
+                    // Otherwise load the iterator before it and move the pointer to that position
                     if let Some(c) = self.layers[self.active_layer].next() {
                         match self.chars_from_rules(&c) {
                             OneOrMany::One(c) => return Some(c),
@@ -169,6 +169,40 @@ fn validity_test() {
 
     assert!(e.zip(s.chars()).all(|(a, b)| a == b))
 }
+
+// #[test]
+// fn time_test() {
+//     use std::collections::HashMap;
+
+//     use crate::{builder::LSystemBuilder, writer::write_lsystem};
+//     use std::time::Instant;
+
+//     let axiom = "X";
+//     let rules = HashMap::from([('X', "F[X][+DX]-DX"), ('D', "F")]);
+//     let depth = 5;
+
+//     println!("starting to write L-System string");
+//     let t0 = Instant::now();
+//     let s = write_lsystem(axiom, &rules, depth);
+//     println!("finished in {:?}", Instant::now() - t0);
+//     println!("reading symbols from string");
+//     let t0 = Instant::now();
+//     for _ in s.chars() {
+//         continue;
+//     }
+//     println!("finished in {:?}\n\n", Instant::now() - t0);
+
+//     println!("running constructor for L-System builder struct");
+//     let t0 = Instant::now();
+//     let e = LSystemBuilder::new(axiom, rules, depth);
+//     println!("finished in {:?}", Instant::now() - t0);
+//     println!("reading symbols from struct");
+//     let t0 = Instant::now();
+//     for _ in e.into_iter() {
+//         continue;
+//     }
+//     println!("finished in {:?}", Instant::now() - t0);
+// }
 
 // #[test]
 // fn validity_test_stochastic() {

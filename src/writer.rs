@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 //use rand::{seq::SliceRandom, Rng};
 
+/// Apply the rules the number of times specified and return the resulting String
 pub fn write_lsystem(axiom: &str, rules: &HashMap<char, &str>, depth: usize) -> String {
     let mut expression = String::from(axiom);
     for _ in 0..depth {
@@ -16,6 +17,41 @@ pub fn write_lsystem(axiom: &str, rules: &HashMap<char, &str>, depth: usize) -> 
         expression = new;
     }
     expression
+}
+
+/// Apply the rules the number of times specified and return a Vec with the String generated at each step, along with the axiom
+pub fn write_lsystem_sequence(
+    axiom: &str,
+    rules: &HashMap<char, &str>,
+    depth: usize,
+) -> Vec<String> {
+    let mut out = Vec::with_capacity(depth + 1);
+    out.push(axiom.to_string());
+    let mut expression = String::from(axiom);
+    for _ in 0..depth {
+        let mut new = String::new();
+        for c in expression.chars() {
+            if let Some(s) = rules.get(&c) {
+                new.push_str(s)
+            } else {
+                new.push(c)
+            }
+        }
+        out.push(new.clone());
+        expression = new;
+    }
+    out
+}
+
+#[test]
+fn from_builder() {
+    use std::collections::HashMap;
+
+    let axiom = "A";
+    let rules = HashMap::from([('A', "AB"), ('B', "A")]);
+    let depth = 5;
+
+    assert_eq!("ABAABABAABAAB", write_lsystem(axiom, &rules, depth))
 }
 
 // pub fn write_lsystem_stochastic<R: Rng>(
