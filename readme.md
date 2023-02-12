@@ -41,4 +41,4 @@ Here the symbols "F", "[", "]", "+", "-" are all terminals, they do not change w
 
 Suitably interpreted this string can produce an image that looks a bit like a tree.
 
-https://github.com/SymmetricChaos/lindenmayer/blob/master/tree.png
+![a tree](https://github.com/SymmetricChaos/lindenmayer/blob/master/tree.png)
