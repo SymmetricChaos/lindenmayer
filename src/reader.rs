@@ -132,7 +132,7 @@ fn from_builder() {
     let rules = HashMap::from([('X', "F[X][+FX]-FX")]);
     let depth = 3;
 
-    let e = LSystemBuilder::new(axiom, rules, depth);
+    let e = LSystemBuilder::new(axiom, &rules, depth);
 
     let actions = HashMap::from([
         ('X', Action::None),

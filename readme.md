@@ -20,7 +20,7 @@ let axiom = "A";
 let rules = HashMap::from([
     ('A', "AB"), ('B', "A")
     ]);
-let system = LSystemBuilder::new(axiom, rules, depth: 5);
+let system = LSystemBuilder::new(axiom, &rules, depth: 5);
 ```
 
 The `LSystemBuilder` struct is an iterator that will produce the symbols from line 5 from the sequence.
@@ -32,7 +32,7 @@ let axiom = "X";
 let rules = HashMap::from([
     ('X', "F[X][+FX]-FX"), 
 ]);
-let system = LSystemBuilder::new(axiom, rules, depth: 3);
+let system = LSystemBuilder::new(axiom, &rules, depth: 3);
 ```
 
 Here the symbols "F", "[", "]", "+", "-" are all implicitly terminals because no rules exists for them. Although they are added to the resulting string by the "X" rule, once they are introduced they never turn into anything else. The string that is produced by this system is quite long.
