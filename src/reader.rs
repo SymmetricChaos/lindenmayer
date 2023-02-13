@@ -9,7 +9,7 @@ use crate::{builder::LSystemBuilder, cursor::Cursor, segment::Segment};
 pub enum Action {
     /// Do nothing
     None,
-    /// Do nothing but report that symbol isn't recognized
+    /// Do nothing, but report that symbol isn't recognized
     Unknown,
     /// Custom action
     Custom(&'static str),
