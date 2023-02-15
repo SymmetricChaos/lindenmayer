@@ -44,7 +44,7 @@ pub fn write_lsystem_sequence(
 }
 
 #[test]
-fn from_builder() {
+fn validation_test() {
     use std::collections::HashMap;
 
     let axiom = "A";
@@ -52,6 +52,19 @@ fn from_builder() {
     let depth = 5;
 
     assert_eq!("ABAABABAABAAB", write_lsystem(axiom, &rules, depth))
+}
+
+#[test]
+fn size_test() {
+    use std::collections::HashMap;
+
+    let axiom = "X";
+    let rules = HashMap::from([('X', "F[X][+DX]-DX"), ('D', "F")]);
+    let depth = 17;
+
+    let s = write_lsystem(axiom, &rules, depth);
+
+    println!("{} kilobytes", s.len()/1000)
 }
 
 // pub fn write_lsystem_stochastic<R: Rng>(

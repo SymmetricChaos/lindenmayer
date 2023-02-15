@@ -39,7 +39,7 @@ impl Cursor {
     pub fn set_angle(&mut self, angle: Vec2) {
         self.angle = angle
             .try_normalize()
-            .expect("unable to normalize angle when setting angle")
+            .expect("unable to normalize angle when setting Cursor angle")
     }
 
     /// Rotate the Cursor's angle by the specified number of radians.
@@ -50,7 +50,7 @@ impl Cursor {
         let y = self.angle.x * rad_sin + self.angle.y * rad_cos;
         self.angle = glam::vec2(x, y)
             .try_normalize()
-            .expect("unable to normalize angle during rotation")
+            .expect("unable to normalize angle during Cursor rotation")
     }
 
     /// Rotate the Cursor's angle by the specified number of degrees.

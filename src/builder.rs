@@ -42,6 +42,7 @@ impl<'a> LSystemBuilder<'a> {
         } else {
             OneOrMany::One(*c)
         }
+        // // Stochastic version
         // if let Some(s) = self.rules.get(&c) {
         //     match s.choose_weighted(&mut self.rng, |item| item.1) {
         //         Ok(s) => OneOrMany::Many(s.0.chars()),

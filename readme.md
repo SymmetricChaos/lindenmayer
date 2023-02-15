@@ -1,9 +1,9 @@
 L-System Builder
 ================
 
-[Lindenmayer systems](https://en.wikipedia.org/wiki/L-system) (or L-Systems) are simple formal grammars that that work using a set of *symbols* and a set of *rules* that are applied iteratively to rewrite them. It is often interesting to interpret the symbols of a L-System as a series of *actions* which can then be visualized.
+[Lindenmayer systems](https://en.wikipedia.org/wiki/L-system) (or L-Systems) are simple context free formal grammars that that work using a set of *symbols* and a set of *rules* that are applied iteratively to rewrite them. It is often interesting to interpret the symbols of a L-System as a series of *actions* which can then be visualized.
 
-As an introduction consider the original L-System which uses only the symbols "A" and "B" along with two rules which say "A" ⇒ "AB" (A becomes AB) and "B"' ⇒ "A" (B becomes A). Now starting from some initial string of symbols called the axiom we can apply these rules. Say we start with just "A" then we get the following sequence of strings.
+As an introduction consider the original L-System which uses only the symbols "A" and "B" along with two rules which say "A" ⇒ "AB" (A becomes AB) and "B"' ⇒ "A" (B becomes A). Now starting from some initial string of symbols called the *axiom* we can apply these rules. Say we start with just "A" then we get the following sequence of strings.
 
 0. A
 1. AB
@@ -35,9 +35,11 @@ let rules = HashMap::from([
 let system = LSystemBuilder::new(axiom, &rules, depth: 3);
 ```
 
-Here the symbols "F", "[", "]", "+", "-" are all implicitly terminals because no rules exists for them. Although they are added to the resulting string by the "X" rule, once they are introduced they never turn into anything else. The string that is produced by this system is quite long.
+Here the symbols "F", "[", "]", "+", "-" are all implicitly terminals because no rules exists for them. Although they are added to the resulting string by the "X" rule, once they are introduced they never turn into anything else. The string that is produced by this system is fairly long.
 
 - F[F[F[X][+FX]-FX][+FF[X][+FX]-FX]-FF[X][+FX]-FX][+FF[F[X][+FX]-FX][+FF[X][+FX]-FX]-FF[X][+FX]-FX]-FF[F[X][+FX]-FX][+FF[X][+FX]-FX]-FF[X][+FX]-FX
+
+(If the depth argument is set very high the length of the resulting string can become arbitrarily large and the rate is increase is quite high. For a depth of 12 the string demands three megabytes and it exceeds a gigabyte of text at a depth of 16. To avoid this the lindenmayer crate iterates over the the rules provided to the system, allocating 128 bits per layer of recursion.)
 
 Suitably interpreted this string can produce an image that looks a bit like a tree.
 
