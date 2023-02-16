@@ -45,14 +45,14 @@ Suitably interpreted this string can produce an image that looks a bit like a tr
 
 ![created with lindenmayer and nannou](https://github.com/SymmetricChaos/lindenmayer/blob/master/tree.png)
 
-To faciliate this lindenmayer includes the `LSystemReader` struct which takes in the builder, actions to interpret the symbols, and [a cursor](https://en.wikipedia.org/wiki/Turtle_graphics). The `LSystemReader` will then follow the instructions to move the cursor through 2D space according to the actions described. The image above was generated using the reader below and then drawn using nannou.
+To faciliate this lindenmayer includes the `LSystemReader` struct which takes in the builder, actions to interpret the symbols, and [a cursor](https://en.wikipedia.org/wiki/Turtle_graphics). The `LSystemReader` will then follow the instructions to move the cursor through 2D space according to the actions described, saving information as instructed. The image above was created by using the reader below to save line segments as the cursor moves and then draw with nannou.
 
 ```rust
 use lindenmayer::{Action, LSystemReader, Cursor};
 
 let actions = HashMap::from([
     ('X', Action::None),
-    ('F', Action::DrawForward(60.0)),
+    ('F', Action::MoveForwardAndSave(60.0)),
     ('+', Action::RotateDeg(-25.0)),
     ('-', Action::RotateDeg(25.0)),
     ('[', Action::PushCursor),

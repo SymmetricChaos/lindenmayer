@@ -16,11 +16,11 @@ pub enum Action {
     /// Move the Cursor forward the specified distance
     MoveForward(f32),
     /// Move the Cursor forward and save a Segment representing a line between the positions to self.segments
-    DrawForward(f32),
+    MoveForwardAndSave(f32),
     /// Move the Cursor of the specificed location
     MoveTo(Vec2),
     /// Move the Cursor of the specificed location and save a Segment representing a line between the positions to self.segments
-    DrawTo(Vec2),
+    MoveToAndSave(Vec2),
     /// Rotate the Cursor by an angle given in radians
     RotateRad(f32),
     /// Rotate the Cursor by an angle given in degrees
@@ -75,14 +75,14 @@ impl<'a> LSystemReader<'a> {
         if let Some(c) = self.expression.next() {
             if let Some(a) = self.actions.get(&c) {
                 match a {
-                    Action::DrawForward(dist) => {
+                    Action::MoveForwardAndSave(dist) => {
                         let old_pos = self.cursor.get_position();
                         self.cursor.forward(*dist);
                         self.segments
                             .push(Segment::from((old_pos, self.cursor.get_position())));
                     }
                     Action::MoveForward(dist) => self.cursor.forward(*dist),
-                    Action::DrawTo(pos) => {
+                    Action::MoveToAndSave(pos) => {
                         let old_pos = self.cursor.get_position();
                         self.cursor.set_position(*pos);
                         self.segments.push(Segment::from((old_pos, *pos)));
@@ -136,7 +136,7 @@ fn from_builder() {
 
     let actions = HashMap::from([
         ('X', Action::None),
-        ('F', Action::DrawForward(60.0)),
+        ('F', Action::MoveForwardAndSave(60.0)),
         ('+', Action::RotateDeg(-25.0)),
         ('-', Action::RotateDeg(25.0)),
         ('[', Action::PushCursor),

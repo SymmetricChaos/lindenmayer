@@ -6,6 +6,7 @@ authors = ["SymmetricChaos <ajfraebel@gmail.com>"]
 description = "Memory Efficient Lindenmayer-Systems"
 keywords = ["lindemayer", "l-system", "lsystem", "grammar", "formal-grammar"]
 edition = "2021"
+repository = "https://github.com/SymmetricChaos/lindenmayer"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
