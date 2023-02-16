@@ -1,6 +1,6 @@
 use glam::Vec2;
 
-/// A simple cursor with a position and directions in 2D space.
+/// A simple cursor with a position and direction in 2D space.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Cursor {
     position: Vec2,
@@ -25,7 +25,7 @@ impl Cursor {
         self.position
     }
 
-    /// Return a copy of the Cursor's amgle.
+    /// Return a copy of the Cursor's angle.
     pub fn get_angle(&self) -> Vec2 {
         self.angle
     }
