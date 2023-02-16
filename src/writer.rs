@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 //use rand::{seq::SliceRandom, Rng};
 
-/// Apply the rules the number of times specified and return the resulting String
+/// Apply the rules the number of times specified and return the resulting String.
 pub fn write_lsystem(axiom: &str, rules: &HashMap<char, &str>, depth: usize) -> String {
     let mut expression = String::from(axiom);
     for _ in 0..depth {
@@ -60,11 +60,11 @@ fn size_test() {
 
     let axiom = "X";
     let rules = HashMap::from([('X', "F[X][+DX]-DX"), ('D', "F")]);
-    let depth = 17;
+    let depth = 10;
 
     let s = write_lsystem(axiom, &rules, depth);
 
-    println!("{} kilobytes", s.len()/1000)
+    println!("depth: {}\n{} kilobytes", depth, s.len() / 1000)
 }
 
 // pub fn write_lsystem_stochastic<R: Rng>(
