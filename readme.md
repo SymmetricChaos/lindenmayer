@@ -37,9 +37,9 @@ let system = LSystemBuilder::new(axiom, &rules, depth: 3);
 
 Here the symbols "F", "[", "]", "+", "-" are all implicitly terminals because no rules exists for them. Although they are added to the resulting string by the "X" rule, once they are introduced they never turn into anything else. The string that is produced by this system is fairly long.
 
-- F[F[F[X][+FX]-FX][+FF[X][+FX]-FX]-FF[X][+FX]-FX][+FF[F[X][+FX]-FX][+FF[X][+FX]-FX]-FF[X][+FX]-FX]-FF[F[X][+FX]-FX][+FF[X][+FX]-FX]-FF[X][+FX]-FX
+F[F[F[X][+FX]-FX][+FF[X][+FX]-FX]-FF[X][+FX]-FX][+FF[F[X][+FX]-FX][+FF[X][+FX]-FX]-FF[X][+FX]-FX]-FF[F[X][+FX]-FX][+FF[X][+FX]-FX]-FF[X][+FX]-FX
 
-(If the depth argument is set very high the length of the resulting string can become arbitrarily large and the rate is increase is quite high. For a depth of 12 the string demands three megabytes and it exceeds a gigabyte of text at a depth of 16. To avoid this the lindenmayer crate iterates over the the rules provided to the system, allocating 128 bits per layer of recursion.)
+(If the depth argument is set very high the length of the resulting string becomes arbitrarily large and the rate of increase can be quite high. For a depth of 12 the string demands three megabytes and it exceeds a gigabyte of text at a depth of 16. To avoid this the lindenmayer crate iterates over the the rules provided to the system, allocating a single iterator per layer of recursion.)
 
 Suitably interpreted this string can produce an image that looks a bit like a tree.
 
@@ -61,4 +61,3 @@ let actions = HashMap::from([
 let cursor = Cursor::new((0.0, -200.0), (0.0, 1.0));
 let reader = LSystemReader::new(system, actions, cursor)
 ```
-
