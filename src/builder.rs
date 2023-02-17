@@ -2,13 +2,14 @@ use std::collections::HashMap;
 
 use crate::rng::InnerRng;
 use rand::{seq::SliceRandom, SeedableRng};
+use rustc_hash::FxHashMap;
 
 enum OneOrMany<'a> {
     One(char),
     Many(std::str::Chars<'a>),
 }
 
-/// The basic description of an L-System.
+/// The basic description of an L-System. Used to generate or iterate over its strings.
 /// ```
 /// # use lindenmayer::LSystem;
 /// let axiom = String::from("X");
@@ -20,22 +21,24 @@ enum OneOrMany<'a> {
 /// ```
 pub struct LSystem<'a> {
     axiom: String,
-    rules: HashMap<char, &'a str>,
+    rules: FxHashMap<char, &'a str>,
 }
 
 impl<'a> LSystem<'_> {
     pub fn new(axiom: String, rules: &[(char, &'a str)]) -> LSystem<'a> {
-        let mut map = HashMap::with_capacity(rules.len());
+        let mut map = FxHashMap::default();
         for rule in rules {
             map.insert(rule.0, rule.1);
         }
         LSystem { axiom, rules: map }
     }
 
+    /// Construct a memory efficient iterator over the L-System at a given depth. This is most useful if one wants to try many different L-Systems or generate them dynamically at runtime.
     pub fn builder(&self, depth: usize) -> LSystemBuilder {
         LSystemBuilder::new(&self.axiom, &self.rules, depth)
     }
 
+    /// Write the L-System, at the given depth, to a String. This is faster than using the builder but may result in a very large allocation.
     pub fn string(&self, depth: usize) -> String {
         let mut expression = self.axiom.clone();
         for _ in 0..depth {
@@ -53,18 +56,16 @@ impl<'a> LSystem<'_> {
     }
 }
 
-/// Efficient L-System constructor that generate symbols one by one rather than building the entire String in memory. This is most useful if one wants to try many different L-Systems or generate them dynamically at runtime.
 #[derive(Debug, Clone)]
 pub struct LSystemBuilder<'a> {
-    // Using FxHashMap and improved performance by about 15% but was a pain to make work
-    rules: &'a HashMap<char, &'a str>,
+    rules: &'a FxHashMap<char, &'a str>,
     depth: usize,
     layers: Vec<std::str::Chars<'a>>,
     active_layer: usize,
 }
 
 impl<'a> LSystemBuilder<'a> {
-    pub fn new(axiom: &'a str, rules: &'a HashMap<char, &'a str>, depth: usize) -> Self {
+    pub fn new(axiom: &'a str, rules: &'a FxHashMap<char, &'a str>, depth: usize) -> Self {
         let mut layers = vec!["".chars(); depth + 1];
         layers[depth] = axiom.chars();
 
@@ -82,15 +83,6 @@ impl<'a> LSystemBuilder<'a> {
         } else {
             OneOrMany::One(*c)
         }
-        // // Stochastic version
-        // if let Some(s) = self.rules.get(&c) {
-        //     match s.choose_weighted(&mut self.rng, |item| item.1) {
-        //         Ok(s) => OneOrMany::Many(s.0.chars()),
-        //         Err(e) => panic!("{}", e.to_string()),
-        //     }
-        // } else {
-        //     OneOrMany::One(*c)
-        // }
     }
 }
 
@@ -126,7 +118,8 @@ impl<'a> Iterator for LSystemBuilder<'_> {
     }
 }
 
-/// The basic description of a stochastic L-System. Used to create an Iterator or String.
+/// The basic description of a stochastic L-System. Used to generate or iterate over its strings.
+/// Warning: Using the same seed for the .builder() and .string() methods does not guarantee identical results because the order of iterator is different.
 /// ```
 /// # use lindenmayer::builder::LSystemStochastic;
 /// let axiom = String::from("X");
@@ -155,10 +148,12 @@ impl<'a> LSystemStochastic<'_> {
         LSystemStochastic { axiom, rules: map }
     }
 
+    /// Construct a memory efficient iterator over the L-System at a given depth. This is most useful if one wants to try many different L-Systems or generate them dynamically at runtime.
     pub fn builder(&self, depth: usize, seed: Option<u64>) -> LSystemBuilderStochastic {
         LSystemBuilderStochastic::new(&self.axiom, &self.rules, depth, seed)
     }
 
+    /// Write the L-System, at the given depth, to a String. This is faster than using the builder but may result in a very large allocation.
     pub fn string(&self, depth: usize, seed: Option<u64>) -> String {
         let mut expression = self.axiom.clone();
         let mut rng = match seed {
@@ -270,36 +265,36 @@ fn validity_test() {
     assert!(e.zip(s.chars()).all(|(a, b)| a == b))
 }
 
-// #[test]
-// fn time_test() {
-//     use std::collections::HashMap;
+#[test]
+fn time_test() {
+    use crate::builder::LSystem;
+    use std::time::Instant;
 
-//     use crate::{builder::LSystemBuilder, writer::write_lsystem};
-//     use std::time::Instant;
+    let axiom = String::from("X");
+    let rules = [('X', "F[X][+DX]-DX"), ('D', "F")];
+    let depth = 12;
 
-//     let axiom = "X";
-//     let rules = HashMap::from([('X', "F[X][+DX]-DX"), ('D', "F")]);
-//     let depth = 12;
+    let system = LSystem::new(axiom, &rules);
 
-//     println!("starting to write L-System string");
-//     let t0 = Instant::now();
-//     let s = write_lsystem(axiom, &rules, depth);
-//     println!("finished in {:?}", Instant::now() - t0);
-//     println!("reading symbols from string");
-//     let t0 = Instant::now();
-//     for _ in s.chars() {
-//         continue;
-//     }
-//     println!("finished in {:?}\n\n", Instant::now() - t0);
+    println!("starting to write L-System string");
+    let t0 = Instant::now();
+    let s = system.string(depth);
+    println!("finished in {:?}", Instant::now() - t0);
+    println!("reading symbols from string");
+    let t0 = Instant::now();
+    for _ in s.chars() {
+        continue;
+    }
+    println!("finished in {:?}\n\n", Instant::now() - t0);
 
-//     println!("running constructor for L-System builder struct");
-//     let t0 = Instant::now();
-//     let e = LSystemBuilder::new(axiom, &rules, depth);
-//     println!("finished in {:?}", Instant::now() - t0);
-//     println!("reading symbols from struct");
-//     let t0 = Instant::now();
-//     for _ in e {
-//         continue;
-//     }
-//     println!("finished in {:?}", Instant::now() - t0);
-// }
+    println!("running constructor for L-System builder struct");
+    let t0 = Instant::now();
+    let e = system.builder(depth);
+    println!("finished in {:?}", Instant::now() - t0);
+    println!("reading symbols from struct");
+    let t0 = Instant::now();
+    for _ in e {
+        continue;
+    }
+    println!("finished in {:?}", Instant::now() - t0);
+}

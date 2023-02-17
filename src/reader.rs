@@ -120,15 +120,14 @@ impl<I: Iterator<Item = char>> SymbolReader<I> {
 
 #[test]
 fn from_builder() {
-    use std::collections::HashMap;
+    use crate::builder::LSystem;
 
-    use crate::builder::LSystemBuilder;
-
-    let axiom = "A";
-    let rules = HashMap::from([('A', "AB"), ('B', "A")]);
+    let axiom = String::from("A");
+    let rules = [('A', "AB"), ('B', "A")];
     let depth = 5;
 
-    let e = LSystemBuilder::new(axiom, &rules, depth);
+    let system = LSystem::new(axiom, &rules);
+    let builder = system.builder(depth);
 
     let actions = HashMap::from([
         ('X', Action::None),
@@ -140,13 +139,19 @@ fn from_builder() {
     ]);
     let cursor = Cursor::new((0.0, -200.0), (0.0, 1.0));
 
-    let _ = SymbolReader::new(e, actions, cursor);
+    let _ = SymbolReader::new(builder, actions, cursor);
 }
 
 #[test]
 fn from_chars() {
-    use std::collections::HashMap;
-    let e = "ABAABABAABAAB".chars();
+    use crate::builder::LSystem;
+
+    let axiom = String::from("A");
+    let rules = [('A', "AB"), ('B', "A")];
+    let depth = 5;
+
+    let string = LSystem::new(axiom, &rules).string(depth);
+
     let actions = HashMap::from([
         ('X', Action::None),
         ('F', Action::DrawForward(60.0)),
@@ -157,5 +162,5 @@ fn from_chars() {
     ]);
     let cursor = Cursor::new((0.0, -200.0), (0.0, 1.0));
 
-    let _ = SymbolReader::new(e, actions, cursor);
+    let _ = SymbolReader::new(string.chars(), actions, cursor);
 }
