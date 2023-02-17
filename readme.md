@@ -25,7 +25,7 @@ let system = LSystemBuilder::new(axiom, &rules, depth: 5);
 
 The `LSystemBuilder` struct is an iterator that will produce the symbols from line 5 from the sequence.
 
-More complex L-Systems have more symbols and more rules. Importantly these systems can contain *terminal symbols* which are symbols that do not change when the rules are applied or, equivalently, have a rule that turns them in themselves like "C" ⇒ "C" (C becomes C). Due to how `LSystemBuilder` is implemented it is best to simply not include a rule for these symbols at all. Consider a more complex L-System in which there are many more symbols than rules.
+More complex L-Systems have more symbols and more rules. Importantly these systems can contain *terminal symbols* which are symbols that do not change when the rules are applied or, equivalently, have a rule that turns them in themselves like "C" ⇒ "C" (C becomes C). Due to how `LSystemBuilder` is implemented it is best to simply not include a rule for these symbols at all, this signals to the program that it can immediately return the symbol. Consider a more complex L-System in which there are many more symbols than rules.
 
 ```rust
 let axiom = "X";
@@ -39,16 +39,20 @@ Here the symbols "F", "[", "]", "+", "-" are all implicitly terminals because no
 
 F[F[F[X][+FX]-FX][+FF[X][+FX]-FX]-FF[X][+FX]-FX][+FF[F[X][+FX]-FX][+FF[X][+FX]-FX]-FF[X][+FX]-FX]-FF[F[X][+FX]-FX][+FF[X][+FX]-FX]-FF[X][+FX]-FX
 
-(If the depth argument is set very high the length of the resulting string becomes arbitrarily large and the rate of increase can be quite high. For a depth of 12 the string demands three megabytes and it exceeds a gigabyte of text at a depth of 16. To avoid this the lindenmayer crate iterates over the the rules provided to the system, allocating a single iterator per layer of recursion.)
+If the depth argument is set very high the length of the resulting string becomes arbitrarily large and the rate of increase can be quite high. For a depth of 12 the string demands three megabytes and it exceeds a gigabyte of text at a depth of 16. To avoid this the lindenmayer crate iterates over the the rules provided to the system, allocating a single iterator per layer of recursion.
+
+However in the case that such a string is needed, for instance to store it, the `write_lsystem()` function is provided which runs somewhat more quickly.
+
+
 
 Suitably interpreted this string can produce an image that looks a bit like a tree.
 
 ![created with lindenmayer and nannou](https://github.com/SymmetricChaos/lindenmayer/blob/master/tree.png)
 
-To faciliate this lindenmayer includes the `LSystemReader` struct which takes in the builder, actions to interpret the symbols, and [a cursor](https://en.wikipedia.org/wiki/Turtle_graphics). The `LSystemReader` will then follow the instructions to move the cursor through 2D space according to the actions described, saving information as instructed. The image above was created by using the reader below to save line segments as the cursor moves and then draw with nannou.
+To faciliate this lindenmayer includes the `SymbolReader` struct which takes in the builder, actions to interpret the symbols, and [a cursor](https://en.wikipedia.org/wiki/Turtle_graphics). The `SymbolReader` will then follow the instructions to move the cursor through 2D space according to the actions described, saving information as instructed. The image above was created by using the reader below to save line segments as the cursor moves and then draw with nannou.
 
 ```rust
-use lindenmayer::{Action, LSystemReader, Cursor};
+use lindenmayer::{Action, SymbolReader, Cursor};
 
 let actions = HashMap::from([
     ('X', Action::None),
@@ -59,5 +63,7 @@ let actions = HashMap::from([
     (']', Action::PopCursor),
 ]);
 let cursor = Cursor::new((0.0, -200.0), (0.0, 1.0));
-let reader = LSystemReader::new(system, actions, cursor)
+let reader = SymbolReader::new(system, actions, cursor)
 ```
+
+It is not required that L-Systems be deterministic. In a stochastic L-System each symbol is rewritten by a rule chosen randomly from a set. Terminals are then symbols for which the *only* rule in the set is the one that maps the symbol to itself.

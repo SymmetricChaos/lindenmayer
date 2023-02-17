@@ -1,23 +1,59 @@
 use std::collections::HashMap;
 
+use crate::rng::InnerRng;
 use rand::{seq::SliceRandom, SeedableRng};
-use rand_xoshiro::Xoshiro256PlusPlus;
 
 enum OneOrMany<'a> {
     One(char),
     Many(std::str::Chars<'a>),
 }
 
-/// Efficient L-System constructor that generate symbols one by one rather than building the entire String in memory. This is most useful if one wants to try many different L-Systems or generate them dynamically at runtime.
+/// The basic description of an L-System.
 /// ```
-/// # use std::collections::HashMap;
-/// # use lindenmayer::builder::LSystemBuilder;
-/// let axiom = "X";
-/// let rules = HashMap::from([('X', "F[X][+DX]-DX"), ('D', "F")]);
+/// # use lindenmayer::LSystem;
+/// let axiom = String::from("X");
+/// let rules = [('X', "F[X][+DX]-DX"), ('D', "F")];
 /// let depth = 2;
-/// let builder = LSystemBuilder::new(axiom, &rules, depth);
-/// assert_eq!("F[F[X][+DX]-DX][+FF[X][+DX]-DX]-FF[X][+DX]-DX", builder.collect::<String>());
+/// let system = LSystem::new(axiom, &rules);
+/// assert_eq!("F[F[X][+DX]-DX][+FF[X][+DX]-DX]-FF[X][+DX]-DX", system.builder(depth).collect::<String>());
+/// assert_eq!("F[F[X][+DX]-DX][+FF[X][+DX]-DX]-FF[X][+DX]-DX", system.string(depth));
 /// ```
+pub struct LSystem<'a> {
+    axiom: String,
+    rules: HashMap<char, &'a str>,
+}
+
+impl<'a> LSystem<'_> {
+    pub fn new(axiom: String, rules: &[(char, &'a str)]) -> LSystem<'a> {
+        let mut map = HashMap::with_capacity(rules.len());
+        for rule in rules {
+            map.insert(rule.0, rule.1);
+        }
+        LSystem { axiom, rules: map }
+    }
+
+    pub fn builder(&self, depth: usize) -> LSystemBuilder {
+        LSystemBuilder::new(&self.axiom, &self.rules, depth)
+    }
+
+    pub fn string(&self, depth: usize) -> String {
+        let mut expression = self.axiom.clone();
+        for _ in 0..depth {
+            let mut new = String::new();
+            for c in expression.chars() {
+                if let Some(s) = self.rules.get(&c) {
+                    new.push_str(s)
+                } else {
+                    new.push(c)
+                }
+            }
+            expression = new;
+        }
+        expression
+    }
+}
+
+/// Efficient L-System constructor that generate symbols one by one rather than building the entire String in memory. This is most useful if one wants to try many different L-Systems or generate them dynamically at runtime.
 #[derive(Debug, Clone)]
 pub struct LSystemBuilder<'a> {
     // Using FxHashMap and improved performance by about 15% but was a pain to make work
@@ -90,42 +126,85 @@ impl<'a> Iterator for LSystemBuilder<'_> {
     }
 }
 
-/// Efficient stochastic L-System constructor that generate symbols one by one rather than building the entire String in memory. This is most useful if one wants to try many different L-Systems or generate them dynamically at runtime.
+/// The basic description of a stochastic L-System. Used to create an Iterator or String.
 /// ```
-/// # use std::collections::HashMap;
-/// # use lindenmayer::builder::LSystemBuilderStochastic;
-/// use rand::SeedableRng;
-/// use rand_xoshiro::Xoshiro256PlusPlus;
-/// let axiom = "X";
-/// let rules = HashMap::from([
-///     ('X', vec![("F[X][+DX]-DX", 1.0)]),
-///     ('D', vec![("F", 2.0), ("FF", 1.0), ("D", 1.0)])
-/// ]);
+/// # use lindenmayer::builder::LSystemStochastic;
+/// let axiom = String::from("X");
+/// let rules = [
+///     ('X', &vec![("F[X][+DX]-DX", 1.0)]),
+///     ('D', &vec![("F", 2.0), ("FF", 1.0), ("D", 1.0)])
+/// ];
 /// let depth = 2;
-/// let rng = Some(Xoshiro256PlusPlus ::seed_from_u64(19251989));
-/// let builder = LSystemBuilderStochastic::new(axiom, &rules, depth, rng);
+/// let seed = Some(19251989);
+///
+/// let system = LSystemStochastic::new(axiom, &rules);
+/// let builder = system.builder(depth, seed);
+/// let string = system.string(depth, seed);
 /// ```
+pub struct LSystemStochastic<'a> {
+    axiom: String,
+    rules: HashMap<char, &'a Vec<(&'a str, f32)>>,
+}
+
+impl<'a> LSystemStochastic<'_> {
+    pub fn new(axiom: String, rules: &[(char, &'a Vec<(&'a str, f32)>)]) -> LSystemStochastic<'a> {
+        let mut map = HashMap::with_capacity(rules.len());
+        for rule in rules {
+            map.insert(rule.0, rule.1);
+        }
+        LSystemStochastic { axiom, rules: map }
+    }
+
+    pub fn builder(&self, depth: usize, seed: Option<u64>) -> LSystemBuilderStochastic {
+        LSystemBuilderStochastic::new(&self.axiom, &self.rules, depth, seed)
+    }
+
+    pub fn string(&self, depth: usize, seed: Option<u64>) -> String {
+        let mut expression = self.axiom.clone();
+        let mut rng = match seed {
+            Some(n) => InnerRng::seed_from_u64(n),
+            None => InnerRng::from_entropy(),
+        };
+        for _ in 0..depth {
+            let mut new = String::new();
+            for c in expression.chars() {
+                if let Some(s) = self.rules.get(&c) {
+                    match s.choose_weighted(&mut rng, |item| item.1) {
+                        Ok(pair) => new.push_str(pair.0),
+                        Err(e) => panic!("{}", e.to_string()),
+                    }
+                } else {
+                    new.push(c)
+                }
+            }
+            expression = new;
+        }
+        expression
+    }
+}
+
+/// Efficient stochastic L-System constructor that generate symbols one by one rather than building the entire String in memory. This is most useful if one wants to try many different L-Systems or generate them dynamically at runtime.
 #[derive(Debug, Clone)]
 pub struct LSystemBuilderStochastic<'a> {
-    rules: &'a HashMap<char, Vec<(&'a str, f32)>>,
+    rules: &'a HashMap<char, &'a Vec<(&'a str, f32)>>,
     depth: usize,
     layers: Vec<std::str::Chars<'a>>,
     active_layer: usize,
-    rng: Xoshiro256PlusPlus,
+    rng: InnerRng,
 }
 
 impl<'a> LSystemBuilderStochastic<'a> {
     pub fn new(
         axiom: &'a str,
-        rules: &'a HashMap<char, Vec<(&'a str, f32)>>,
+        rules: &'a HashMap<char, &'a Vec<(&'a str, f32)>>,
         depth: usize,
         seed: Option<u64>,
     ) -> Self {
         let mut layers = vec!["".chars(); depth + 1];
         layers[depth] = axiom.chars();
         let rng = match seed {
-            Some(n) => Xoshiro256PlusPlus::seed_from_u64(n),
-            None => Xoshiro256PlusPlus::from_entropy(),
+            Some(n) => InnerRng::seed_from_u64(n),
+            None => InnerRng::from_entropy(),
         };
         Self {
             rules,
@@ -177,16 +256,16 @@ impl<'a> Iterator for LSystemBuilderStochastic<'_> {
 
 #[test]
 fn validity_test() {
-    use std::collections::HashMap;
+    use crate::builder::LSystem;
 
-    use crate::{builder::LSystemBuilder, writer::write_lsystem};
-
-    let axiom = "X";
-    let rules = HashMap::from([('X', "F[X][+DX]-DX"), ('D', "F")]);
+    let axiom = String::from("X");
+    let rules = [('X', "F[X][+DX]-DX"), ('D', "F")];
     let depth = 3;
 
-    let s = write_lsystem(axiom, &rules, depth);
-    let e = LSystemBuilder::new(axiom, &rules, depth);
+    let system = LSystem::new(axiom, &rules);
+
+    let s = system.string(depth);
+    let e = system.builder(depth);
 
     assert!(e.zip(s.chars()).all(|(a, b)| a == b))
 }

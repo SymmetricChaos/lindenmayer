@@ -16,11 +16,11 @@ pub enum Action {
     /// Move the Cursor forward the specified distance
     MoveForward(f32),
     /// Move the Cursor forward and save a Segment representing a line between the positions to self.segments
-    MoveForwardAndSave(f32),
+    DrawForward(f32),
     /// Move the Cursor of the specificed location
     MoveTo(Vec2),
     /// Move the Cursor of the specificed location and save a Segment representing a line between the positions to self.segments
-    MoveToAndSave(Vec2),
+    DrawTo(Vec2),
     /// Rotate the Cursor by an angle given in radians
     RotateRad(f32),
     /// Rotate the Cursor by an angle given in degrees
@@ -42,7 +42,7 @@ pub enum Action {
 }
 
 /// Interpret a sequence of symbols as actions in 2D space.
-pub struct LSystemReader<I: Iterator<Item = char>> {
+pub struct SymbolReader<I: Iterator<Item = char>> {
     expression: I,
     actions: HashMap<char, Action>,
     pub segments: Vec<Segment>,
@@ -52,9 +52,9 @@ pub struct LSystemReader<I: Iterator<Item = char>> {
     pub cursor: Cursor,
 }
 
-impl<I: Iterator<Item = char>> LSystemReader<I> {
+impl<I: Iterator<Item = char>> SymbolReader<I> {
     pub fn new(expression: I, actions: HashMap<char, Action>, cursor: Cursor) -> Self {
-        LSystemReader {
+        SymbolReader {
             expression,
             actions,
             segments: Vec::new(),
@@ -71,14 +71,14 @@ impl<I: Iterator<Item = char>> LSystemReader<I> {
         if let Some(c) = self.expression.next() {
             if let Some(a) = self.actions.get(&c) {
                 match a {
-                    Action::MoveForwardAndSave(dist) => {
+                    Action::DrawForward(dist) => {
                         let old_pos = self.cursor.get_position();
                         self.cursor.forward(*dist);
                         self.segments
                             .push(Segment::from((old_pos, self.cursor.get_position())));
                     }
                     Action::MoveForward(dist) => self.cursor.forward(*dist),
-                    Action::MoveToAndSave(pos) => {
+                    Action::DrawTo(pos) => {
                         let old_pos = self.cursor.get_position();
                         self.cursor.set_position(*pos);
                         self.segments.push(Segment::from((old_pos, *pos)));
@@ -132,7 +132,7 @@ fn from_builder() {
 
     let actions = HashMap::from([
         ('X', Action::None),
-        ('F', Action::MoveForwardAndSave(60.0)),
+        ('F', Action::DrawForward(60.0)),
         ('+', Action::RotateDeg(-25.0)),
         ('-', Action::RotateDeg(25.0)),
         ('[', Action::PushCursor),
@@ -140,7 +140,7 @@ fn from_builder() {
     ]);
     let cursor = Cursor::new((0.0, -200.0), (0.0, 1.0));
 
-    let _ = LSystemReader::new(e, actions, cursor);
+    let _ = SymbolReader::new(e, actions, cursor);
 }
 
 #[test]
@@ -149,7 +149,7 @@ fn from_chars() {
     let e = "ABAABABAABAAB".chars();
     let actions = HashMap::from([
         ('X', Action::None),
-        ('F', Action::MoveForwardAndSave(60.0)),
+        ('F', Action::DrawForward(60.0)),
         ('+', Action::RotateDeg(-25.0)),
         ('-', Action::RotateDeg(25.0)),
         ('[', Action::PushCursor),
@@ -157,5 +157,5 @@ fn from_chars() {
     ]);
     let cursor = Cursor::new((0.0, -200.0), (0.0, 1.0));
 
-    let _ = LSystemReader::new(e, actions, cursor);
+    let _ = SymbolReader::new(e, actions, cursor);
 }
