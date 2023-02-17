@@ -4,6 +4,8 @@ use rand::seq::SliceRandom;
 use rand::SeedableRng;
 use rand_xoshiro::Xoroshiro128StarStar;
 
+use crate::writer::write_lsystem_stochastic;
+
 enum OneOrMany<'a> {
     One(char),
     Many(std::str::Chars<'a>),
@@ -117,11 +119,14 @@ impl<'a> LSystemBuilderStochastic<'a> {
         axiom: &'a str,
         rules: &'a HashMap<char, Vec<(&'a str, f32)>>,
         depth: usize,
+        rng: Option<Xoroshiro128StarStar>,
     ) -> Self {
         let mut layers = vec!["".chars(); depth + 1];
         layers[depth] = axiom.chars();
-        let rng = Xoroshiro128StarStar::from_entropy();
-
+        let rng = match rng {
+            Some(r) => r,
+            None => Xoroshiro128StarStar::from_entropy(),
+        };
         Self {
             rules,
             depth,
@@ -182,6 +187,26 @@ fn validity_test() {
 
     let s = write_lsystem(axiom, &rules, depth);
     let e = LSystemBuilder::new(axiom, &rules, depth);
+
+    assert!(e.zip(s.chars()).all(|(a, b)| a == b))
+}
+
+#[test]
+fn validity_test_stochastic() {
+    use std::collections::HashMap;
+
+    use crate::{builder::LSystemBuilderStochastic, writer::write_lsystem_stochastic};
+
+    let axiom = "A";
+    let rules = HashMap::from([
+        ('A', vec![("A", 1.0), ("B", 2.0), ("C", 1.0)]),
+        ('B', vec![("BB", 1.0), ("A", 2.0), ("C", 0.5)]),
+    ]);
+    let depth = 8;
+    let rng = Xoroshiro128StarStar::seed_from_u64(923487);
+
+    let s = write_lsystem_stochastic(axiom, &rules, depth, Some(rng.clone()));
+    let e = LSystemBuilderStochastic::new(axiom, &rules, depth, Some(rng.clone()));
 
     assert!(e.zip(s.chars()).all(|(a, b)| a == b))
 }

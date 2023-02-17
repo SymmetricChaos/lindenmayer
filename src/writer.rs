@@ -1,5 +1,8 @@
 use std::collections::HashMap;
 
+use rand::{seq::SliceRandom, SeedableRng};
+use rand_xoshiro::Xoroshiro128StarStar;
+
 //use rand::{seq::SliceRandom, Rng};
 
 /// Apply the rules the number of times specified and return the resulting String.
@@ -41,6 +44,35 @@ pub fn write_lsystem_sequence(
         expression = new;
     }
     out
+}
+
+/// Apply the rules the number of times specified and return the resulting String.
+pub fn write_lsystem_stochastic(
+    axiom: &str,
+    rules: &HashMap<char, Vec<(&str, f32)>>,
+    depth: usize,
+    rng: Option<Xoroshiro128StarStar>,
+) -> String {
+    let mut expression = String::from(axiom);
+    let mut rng = match rng {
+        Some(r) => r,
+        None => Xoroshiro128StarStar::from_entropy(),
+    };
+    for _ in 0..depth {
+        let mut new = String::new();
+        for c in expression.chars() {
+            if let Some(s) = rules.get(&c) {
+                match s.choose_weighted(&mut rng, |item| item.1) {
+                    Ok(pair) => new.push_str(pair.0),
+                    Err(e) => panic!("{}", e.to_string()),
+                }
+            } else {
+                new.push(c)
+            }
+        }
+        expression = new;
+    }
+    expression
 }
 
 #[test]
