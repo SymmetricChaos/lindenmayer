@@ -4,8 +4,6 @@ use rand::seq::SliceRandom;
 use rand::SeedableRng;
 use rand_xoshiro::Xoroshiro128StarStar;
 
-use crate::writer::write_lsystem_stochastic;
-
 enum OneOrMany<'a> {
     One(char),
     Many(std::str::Chars<'a>),
@@ -97,13 +95,16 @@ impl<'a> Iterator for LSystemBuilder<'_> {
 /// ```
 /// # use std::collections::HashMap;
 /// # use lindenmayer::builder::LSystemBuilderStochastic;
+/// use rand::SeedableRng;
+/// use rand_xoshiro::Xoroshiro128StarStar;
 /// let axiom = "X";
 /// let rules = HashMap::from([
-///     ('X', vec![(1.0, "F[X][+DX]-DX")]),
-///     ('D', vec![(2.0, "F"), (1.0, "FF"), (1.0, "D")])
+///     ('X', vec![("F[X][+DX]-DX", 1.0)]),
+///     ('D', vec![("F", 2.0), ("FF", 1.0), ("D", 1.0)])
 /// ]);
 /// let depth = 2;
-/// let builder = LSystemBuilderStochastic::new(axiom, &rules, depth);
+/// let rng = Some(Xoroshiro128StarStar::seed_from_u64(19251989));
+/// let builder = LSystemBuilderStochastic::new(axiom, &rules, depth, rng);
 /// ```
 #[derive(Debug, Clone)]
 pub struct LSystemBuilderStochastic<'a> {
