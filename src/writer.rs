@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use rand::{seq::SliceRandom, SeedableRng};
-use rand_xoshiro::Xoroshiro128StarStar;
+use rand_xoshiro::Xoshiro256PlusPlus;
 
 //use rand::{seq::SliceRandom, Rng};
 
@@ -51,12 +51,12 @@ pub fn write_lsystem_stochastic(
     axiom: &str,
     rules: &HashMap<char, Vec<(&str, f32)>>,
     depth: usize,
-    rng: Option<Xoroshiro128StarStar>,
+    seed: Option<u64>,
 ) -> String {
     let mut expression = String::from(axiom);
-    let mut rng = match rng {
-        Some(r) => r,
-        None => Xoroshiro128StarStar::from_entropy(),
+    let mut rng = match seed {
+        Some(n) => Xoshiro256PlusPlus::seed_from_u64(n),
+        None => Xoshiro256PlusPlus::from_entropy(),
     };
     for _ in 0..depth {
         let mut new = String::new();
