@@ -15,37 +15,45 @@ As an introduction consider the original L-System which uses only the symbols "A
 We can represent this system using lindenmayer as follows.
 
 ```rust
-use lindenmayer::LSystemBuilder;
-let axiom = "A";
-let rules = HashMap::from([
+use lindenmayer::LSystem;
+let axiom = String::from("A");
+let rules = [
     ('A', "AB"), ('B', "A")
-    ]);
-let system = LSystemBuilder::new(axiom, &rules, depth: 5);
+    ];
+let system = LSystem::new(axiom, &rules);
 ```
 
-The `LSystemBuilder` struct is an iterator that will produce the symbols from line 5 from the sequence.
-
-More complex L-Systems have more symbols and more rules. Importantly these systems can contain *terminal symbols* which are symbols that do not change when the rules are applied or, equivalently, have a rule that turns them in themselves like "C" ⇒ "C" (C becomes C). Due to how `LSystemBuilder` is implemented it is best to simply not include a rule for these symbols at all, this signals to the program that it can immediately return the symbol. Consider a more complex L-System in which there are many more symbols than rules.
+The `LSystem` struct can then be used to produce either a string or an iterator that will produce the symbols.
 
 ```rust
-let axiom = "X";
-let rules = HashMap::from([
+let depth = 5;
+println!("{}",system.string(depth));
+// ABAABABAABAAB
+println!("{}",system.builder(depth).collect::<String>());
+// ABAABABAABAAB
+```
+
+More complex L-Systems have more symbols and more rules. Importantly these systems can contain *terminal symbols* which are symbols that do not change when the rules are applied or, equivalently, have a rule that turns them in themselves like "C" ⇒ "C" (C becomes C). Due to how the methods on `LSystem` are implemented it is best to simply not include a rule for these symbols at all, this signals to the program that it can immediately return the symbol. Consider a more complex L-System in which there are many more symbols than rules.
+
+```rust
+let axiom = String::from("X");
+let rules = [
     ('X', "F[X][+FX]-FX"), 
-]);
-let system = LSystemBuilder::new(axiom, &rules, depth: 3);
+];
+let system = LSystem::new(axiom, &rules);
 ```
 
 Here the symbols "F", "[", "]", "+", "-" are all implicitly terminals because no rules exists for them. Although they are added to the resulting string by the "X" rule, once they are introduced they never turn into anything else. The string that is produced by this system is fairly long.
 
-F[F[F[X][+FX]-FX][+FF[X][+FX]-FX]-FF[X][+FX]-FX][+FF[F[X][+FX]-FX][+FF[X][+FX]-FX]-FF[X][+FX]-FX]-FF[F[X][+FX]-FX][+FF[X][+FX]-FX]-FF[X][+FX]-FX
+```rust
+let depth = 3;
+println!("{}",system.string(depth));
+// F[F[F[X][+FX]-FX][+FF[X][+FX]-FX]-FF[X][+FX]-FX][+FF[F[X][+FX]-FX][+FF[X][+FX]-FX]-FF[X][+FX]-FX]-FF[F[X][+FX]-FX][+FF[X][+FX]-FX]-FF[X][+FX]-FX
+```
 
-If the depth argument is set very high the length of the resulting string becomes arbitrarily large and the rate of increase can be quite high. For a depth of 12 the string demands three megabytes and it exceeds a gigabyte of text at a depth of 16. To avoid this the lindenmayer crate iterates over the the rules provided to the system, allocating a single iterator per layer of recursion.
+If the depth argument is set very high the length of the resulting string becomes arbitrarily large and the rate of increase can be quite high. For a depth of 12 the system above will have to allocate three megabytes and the memory usage exceeds a gigabyte at a depth of 16. When using the `.builder` method the only memory usage needed is a pair of pointers per level of recursion. This is can be preferable if the string does not need to be saved.
 
-However in the case that such a string is needed, for instance to store it, the `write_lsystem()` function is provided which runs somewhat more quickly.
-
-
-
-Suitably interpreted this string can produce an image that looks a bit like a tree.
+One usage for the iterator is iterpreting the system as a sequence of instructions. Suitably interpreted this string can produce an image that looks a bit like a tree.
 
 ![created with lindenmayer and nannou](https://github.com/SymmetricChaos/lindenmayer/blob/master/tree.png)
 
@@ -66,4 +74,22 @@ let cursor = Cursor::new((0.0, -200.0), (0.0, 1.0));
 let reader = SymbolReader::new(system, actions, cursor)
 ```
 
-It is not required that L-Systems be deterministic. In a stochastic L-System each symbol is rewritten by a rule chosen randomly from a set. Terminals are then symbols for which the *only* rule in the set is the one that maps the symbol to itself.
+It is not required that L-Systems be deterministic. In a stochastic L-System each symbol is rewritten by a rule chosen randomly from a set. These can be created with the `LSystemStochastic` struct with replacement part of the rules specified by `Vec<(&str,f32)>` with each entry containing the possible replacement and its probability relative to the other options. The interface is otherwise identical to the one for `LSystem`.
+
+```rust
+use lindenmayer::builder::LSystemStochastic;
+
+let axiom = String::from("X");
+let rules = [
+    ('X', &vec![("F[X][+DX]-DX", 1.0)]),
+    ('D', &vec![("F", 2.0), ("FF", 1.0), ("D", 1.0)])
+];
+
+let system = LSystemStochastic::new(axiom, &rules);
+
+let depth = 2;
+let seed = Some(19251989);
+
+println!("{}", system.string(depth, seed));
+//F[F[X][+DX]-DX][+FFF[X][+DX]-DX]-FF[X][+DX]-DX
+```

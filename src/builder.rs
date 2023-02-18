@@ -119,7 +119,7 @@ impl<'a> Iterator for LSystemBuilder<'_> {
 }
 
 /// The basic description of a stochastic L-System. Used to generate or iterate over its strings.
-/// Warning: Using the same seed for the .builder() and .string() methods does not guarantee identical results because the order of iterator is different.
+/// Warning: Using the same seed for the .builder() and .string() methods does not guarantee identical results because the order of iteration is different.
 /// ```
 /// # use lindenmayer::builder::LSystemStochastic;
 /// let axiom = String::from("X");
@@ -266,35 +266,49 @@ fn validity_test() {
 }
 
 #[test]
-fn time_test() {
-    use crate::builder::LSystem;
-    use std::time::Instant;
-
+fn stochastic_test() {
     let axiom = String::from("X");
-    let rules = [('X', "F[X][+DX]-DX"), ('D', "F")];
-    let depth = 12;
+    let rules = [
+        ('X', &vec![("F[X][+DX]-DX", 1.0)]),
+        ('D', &vec![("F", 2.0), ("FF", 1.0), ("D", 1.0)]),
+    ];
+    let depth = 2;
+    let seed = Some(19251989);
 
-    let system = LSystem::new(axiom, &rules);
-
-    println!("starting to write L-System string");
-    let t0 = Instant::now();
-    let s = system.string(depth);
-    println!("finished in {:?}", Instant::now() - t0);
-    println!("reading symbols from string");
-    let t0 = Instant::now();
-    for _ in s.chars() {
-        continue;
-    }
-    println!("finished in {:?}\n\n", Instant::now() - t0);
-
-    println!("running constructor for L-System builder struct");
-    let t0 = Instant::now();
-    let e = system.builder(depth);
-    println!("finished in {:?}", Instant::now() - t0);
-    println!("reading symbols from struct");
-    let t0 = Instant::now();
-    for _ in e {
-        continue;
-    }
-    println!("finished in {:?}", Instant::now() - t0);
+    let system = LSystemStochastic::new(axiom, &rules);
+    println!("{}", system.string(depth, seed));
 }
+
+// #[test]
+// fn time_test() {
+//     use crate::builder::LSystem;
+//     use std::time::Instant;
+
+//     let axiom = String::from("X");
+//     let rules = [('X', "F[X][+DX]-DX"), ('D', "F")];
+//     let depth = 12;
+
+//     let system = LSystem::new(axiom, &rules);
+
+//     println!("starting to write L-System string");
+//     let t0 = Instant::now();
+//     let s = system.string(depth);
+//     println!("finished in {:?}", Instant::now() - t0);
+//     println!("reading symbols from string");
+//     let t0 = Instant::now();
+//     for _ in s.chars() {
+//         continue;
+//     }
+//     println!("finished in {:?}\n\n", Instant::now() - t0);
+
+//     println!("running constructor for L-System builder struct");
+//     let t0 = Instant::now();
+//     let e = system.builder(depth);
+//     println!("finished in {:?}", Instant::now() - t0);
+//     println!("reading symbols from struct");
+//     let t0 = Instant::now();
+//     for _ in e {
+//         continue;
+//     }
+//     println!("finished in {:?}", Instant::now() - t0);
+// }
