@@ -23,8 +23,8 @@ pub enum Rewrite<'a> {
 /// ```
 #[derive(Debug, Clone)]
 pub struct LSystem<'a> {
-    axiom: String,
-    rules: FxHashMap<char, &'a str>,
+    pub axiom: String,
+    pub rules: FxHashMap<char, &'a str>,
 }
 
 impl<'a> LSystem<'a> {
@@ -153,8 +153,8 @@ impl<'a> Iterator for LSystemBuilder<'_> {
 /// let string = system.string(depth, seed);
 /// ```
 pub struct LSystemStochastic<'a> {
-    axiom: String,
-    rules: HashMap<char, &'a Vec<(&'a str, f32)>>,
+    pub axiom: String,
+    pub rules: HashMap<char, &'a Vec<(&'a str, f32)>>,
 }
 
 impl<'a> LSystemStochastic<'_> {
@@ -196,9 +196,20 @@ impl<'a> LSystemStochastic<'_> {
     }
 }
 
+// pub fn normalize_replacements(vec: &mut Vec<(&str, f32)>) {
+//     let s: f32 = vec.iter().map(|x| x.1).sum();
+//     for (r, n) in vec {
+//         *n /= s
+//     }
+// }
+
 // impl Display for LSystemStochastic<'_> {
 //     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 //         let mut out = format!("Axiom: {}\nRules:\n", self.axiom);
+//         for (c, replacements) in self.rules.iter() {
+//             out.push_str(&format!("{c} =>"));
+//             replacements.iter().map(f)
+//         }
 
 //         write!(f, "{}", out)
 //     }
