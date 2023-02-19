@@ -1,12 +1,13 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 
 use crate::rng::InnerRng;
 use rand::{seq::SliceRandom, SeedableRng};
 use rustc_hash::FxHashMap;
 
-enum OneOrMany<'a> {
-    One(char),
-    Many(std::str::Chars<'a>),
+#[derive(Debug, Clone)]
+pub enum Rewrite<'a> {
+    Terminal(char),
+    Variable(std::str::Chars<'a>),
 }
 
 /// The basic description of an L-System. Used to generate or iterate over its strings.
@@ -19,12 +20,13 @@ enum OneOrMany<'a> {
 /// assert_eq!("F[F[X][+DX]-DX][+FF[X][+DX]-DX]-FF[X][+DX]-DX", system.builder(depth).collect::<String>());
 /// assert_eq!("F[F[X][+DX]-DX][+FF[X][+DX]-DX]-FF[X][+DX]-DX", system.string(depth));
 /// ```
+#[derive(Debug, Clone)]
 pub struct LSystem<'a> {
     axiom: String,
     rules: FxHashMap<char, &'a str>,
 }
 
-impl<'a> LSystem<'_> {
+impl<'a> LSystem<'a> {
     pub fn new(axiom: String, rules: &[(char, &'a str)]) -> LSystem<'a> {
         let mut map = FxHashMap::default();
         for rule in rules {
@@ -33,9 +35,17 @@ impl<'a> LSystem<'_> {
         LSystem { axiom, rules: map }
     }
 
+    pub fn chars_from_rules(&self, c: &char) -> Rewrite<'a> {
+        if let Some(s) = self.rules.get(c) {
+            Rewrite::Variable(s.chars())
+        } else {
+            Rewrite::Terminal(*c)
+        }
+    }
+
     /// Construct a memory efficient iterator over the L-System at a given depth. This is most useful if one wants to try many different L-Systems or generate them dynamically at runtime.
     pub fn builder(&self, depth: usize) -> LSystemBuilder {
-        LSystemBuilder::new(&self.axiom, &self.rules, depth)
+        LSystemBuilder::new(&self, depth)
     }
 
     /// Write the L-System, at the given depth, to a String. This is faster than using the builder but may result in a very large allocation.
@@ -56,32 +66,38 @@ impl<'a> LSystem<'_> {
     }
 }
 
+impl Display for LSystem<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut out = format!("Axiom: {}\nRules:\n", self.axiom);
+        for i in self
+            .rules
+            .iter()
+            .map(|(k, v)| format!("   {} => {}\n", k, v))
+        {
+            out.push_str(&i);
+        }
+        write!(f, "{}", out)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct LSystemBuilder<'a> {
-    rules: &'a FxHashMap<char, &'a str>,
+    system: &'a LSystem<'a>,
     depth: usize,
     layers: Vec<std::str::Chars<'a>>,
     active_layer: usize,
 }
 
 impl<'a> LSystemBuilder<'a> {
-    pub fn new(axiom: &'a str, rules: &'a FxHashMap<char, &'a str>, depth: usize) -> Self {
+    pub fn new(system: &'a LSystem<'a>, depth: usize) -> Self {
         let mut layers = vec!["".chars(); depth + 1];
-        layers[depth] = axiom.chars();
+        layers[depth] = system.axiom.chars();
 
         Self {
-            rules,
+            system,
             depth,
             layers,
             active_layer: depth - 1,
-        }
-    }
-
-    fn chars_from_rules(&self, c: &char) -> OneOrMany<'a> {
-        if let Some(s) = self.rules.get(c) {
-            OneOrMany::Many(s.chars())
-        } else {
-            OneOrMany::One(*c)
         }
     }
 }
@@ -103,9 +119,9 @@ impl<'a> Iterator for LSystemBuilder<'_> {
                     // If it is a terminal symbol then we can short circuit and just return it
                     // Otherwise load the iterator before it and move the pointer to that position
                     if let Some(c) = self.layers[self.active_layer].next() {
-                        match self.chars_from_rules(&c) {
-                            OneOrMany::One(c) => return Some(c),
-                            OneOrMany::Many(cs) => self.layers[self.active_layer - 1] = cs,
+                        match self.system.chars_from_rules(&c) {
+                            Rewrite::Terminal(c) => return Some(c),
+                            Rewrite::Variable(cs) => self.layers[self.active_layer - 1] = cs,
                         }
                         self.active_layer -= 1
                     // If the iterator is empty move the pointer up
@@ -178,6 +194,14 @@ impl<'a> LSystemStochastic<'_> {
     }
 }
 
+// impl Display for LSystemStochastic<'_> {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         let mut out = format!("Axiom: {}\nRules:\n", self.axiom);
+
+//         write!(f, "{}", out)
+//     }
+// }
+
 /// Efficient stochastic L-System constructor that generate symbols one by one rather than building the entire String in memory. This is most useful if one wants to try many different L-Systems or generate them dynamically at runtime.
 #[derive(Debug, Clone)]
 pub struct LSystemBuilderStochastic<'a> {
@@ -210,14 +234,14 @@ impl<'a> LSystemBuilderStochastic<'a> {
         }
     }
 
-    fn chars_from_rules(&mut self, c: &char) -> OneOrMany<'a> {
+    fn chars_from_rules(&mut self, c: &char) -> Rewrite<'a> {
         if let Some(s) = self.rules.get(c) {
             match s.choose_weighted(&mut self.rng, |item| item.1) {
-                Ok(s) => OneOrMany::Many(s.0.chars()),
+                Ok(s) => Rewrite::Variable(s.0.chars()),
                 Err(e) => panic!("{}", e.to_string()),
             }
         } else {
-            OneOrMany::One(*c)
+            Rewrite::Terminal(*c)
         }
     }
 }
@@ -236,8 +260,8 @@ impl<'a> Iterator for LSystemBuilderStochastic<'_> {
                 } else {
                     if let Some(c) = self.layers[self.active_layer].next() {
                         match self.chars_from_rules(&c) {
-                            OneOrMany::One(c) => return Some(c),
-                            OneOrMany::Many(cs) => self.layers[self.active_layer - 1] = cs,
+                            Rewrite::Terminal(c) => return Some(c),
+                            Rewrite::Variable(cs) => self.layers[self.active_layer - 1] = cs,
                         }
                         self.active_layer -= 1
                     } else {
@@ -258,6 +282,11 @@ fn validity_test() {
     let depth = 3;
 
     let system = LSystem::new(axiom, &rules);
+
+    assert_eq!(
+        "Axiom: X\nRules:\n   X => F[X][+DX]-DX\n   D => F\n",
+        system.to_string()
+    );
 
     let s = system.string(depth);
     let e = system.builder(depth);
@@ -312,3 +341,14 @@ fn stochastic_test() {
 //     }
 //     println!("finished in {:?}", Instant::now() - t0);
 // }
+
+// Previous speed results
+// starting to write L-System string
+// finished in 314.8995ms
+// reading symbols from string
+// finished in 92.878ms
+
+// running constructor for L-System builder struct
+// finished in 4.2µs
+// reading symbols from struct
+// finished in 448.6379ms
