@@ -28,10 +28,10 @@ pub struct LSystem<'a> {
 }
 
 impl<'a> LSystem<'a> {
-    pub fn new(axiom: String, rules: &[(char, &'a str)]) -> LSystem<'a> {
+    pub fn new<S: AsRef<str>>(axiom: String, rules: &'a [(char, S)]) -> LSystem<'a> {
         let mut map = FxHashMap::default();
         for rule in rules {
-            map.insert(rule.0, rule.1);
+            map.insert(rule.0, rule.1.as_ref());
         }
         LSystem { axiom, rules: map }
     }
@@ -152,23 +152,30 @@ impl<'a> Iterator for LSystemBuilder<'_> {
 /// let builder = system.builder(depth, seed);
 /// let string = system.string(depth, seed);
 /// ```
+#[derive(Debug, Clone)]
 pub struct LSystemStochastic<'a> {
     pub axiom: String,
-    pub rules: HashMap<char, &'a Vec<(&'a str, f32)>>,
+    pub rules: HashMap<char, Vec<(&'a str, f32)>>,
 }
 
 impl<'a> LSystemStochastic<'_> {
-    pub fn new(axiom: String, rules: &[(char, &'a Vec<(&'a str, f32)>)]) -> LSystemStochastic<'a> {
+    pub fn new<S: AsRef<str>>(
+        axiom: String,
+        rules: &'a [(char, Vec<(S, f32)>)],
+    ) -> LSystemStochastic<'a> {
         let mut map = HashMap::with_capacity(rules.len());
         for rule in rules {
-            map.insert(rule.0, rule.1);
+            map.insert(
+                rule.0,
+                rule.1.iter().map(|(s, n)| (s.as_ref(), *n)).collect(),
+            );
         }
         LSystemStochastic { axiom, rules: map }
     }
 
     /// Construct a memory efficient iterator over the L-System at a given depth. This is most useful if one wants to try many different L-Systems or generate them dynamically at runtime.
     pub fn builder(&self, depth: usize, seed: Option<u64>) -> LSystemBuilderStochastic {
-        LSystemBuilderStochastic::new(&self.axiom, &self.rules, depth, seed)
+        LSystemBuilderStochastic::new(&self, depth, seed)
     }
 
     /// Write the L-System, at the given depth, to a String. This is faster than using the builder but may result in a very large allocation.
@@ -218,7 +225,7 @@ impl<'a> LSystemStochastic<'_> {
 /// Efficient stochastic L-System constructor that generate symbols one by one rather than building the entire String in memory. This is most useful if one wants to try many different L-Systems or generate them dynamically at runtime.
 #[derive(Debug, Clone)]
 pub struct LSystemBuilderStochastic<'a> {
-    rules: &'a HashMap<char, &'a Vec<(&'a str, f32)>>,
+    system: &'a LSystemStochastic<'a>,
     depth: usize,
     layers: Vec<std::str::Chars<'a>>,
     active_layer: usize,
@@ -226,20 +233,15 @@ pub struct LSystemBuilderStochastic<'a> {
 }
 
 impl<'a> LSystemBuilderStochastic<'a> {
-    pub fn new(
-        axiom: &'a str,
-        rules: &'a HashMap<char, &'a Vec<(&'a str, f32)>>,
-        depth: usize,
-        seed: Option<u64>,
-    ) -> Self {
+    pub fn new(system: &'a LSystemStochastic, depth: usize, seed: Option<u64>) -> Self {
         let mut layers = vec!["".chars(); depth + 1];
-        layers[depth] = axiom.chars();
+        layers[depth] = system.axiom.chars();
         let rng = match seed {
             Some(n) => InnerRng::seed_from_u64(n),
             None => InnerRng::from_entropy(),
         };
         Self {
-            rules,
+            system,
             depth,
             layers,
             active_layer: depth - 1,
@@ -248,7 +250,7 @@ impl<'a> LSystemBuilderStochastic<'a> {
     }
 
     fn chars_from_rules(&mut self, c: &char) -> Rewrite<'a> {
-        if let Some(s) = self.rules.get(c) {
+        if let Some(s) = self.system.rules.get(c) {
             match s.choose_weighted(&mut self.rng, |item| item.1) {
                 Ok(s) => Rewrite::Variable(s.0.chars()),
                 Err(e) => panic!("{}", e.to_string()),
@@ -311,8 +313,8 @@ fn validity_test() {
 fn stochastic_test() {
     let axiom = String::from("X");
     let rules = [
-        ('X', &vec![("F[X][+DX]-DX", 1.0)]),
-        ('D', &vec![("F", 2.0), ("FF", 1.0), ("D", 1.0)]),
+        ('X', vec![("F[X][+DX]-DX", 1.0)]),
+        ('D', vec![("F", 2.0), ("FF", 1.0), ("D", 1.0)]),
     ];
     let depth = 2;
     let seed = Some(19251989);
