@@ -37,7 +37,7 @@ impl<'a> LSystem<'a> {
     }
 
     /// Return the rewrite rule for a give character.
-    pub fn chars_from_rules(&self, c: &char) -> Rewrite<'a> {
+    pub fn get(&self, c: &char) -> Rewrite<'a> {
         if let Some(s) = self.rules.get(c) {
             Rewrite::Variable(s.chars())
         } else {
@@ -121,7 +121,7 @@ impl<'a> Iterator for LSystemBuilder<'_> {
                     // If it is a terminal symbol then we can short circuit and just return it
                     // Otherwise load the iterator before it and move the pointer to that position
                     if let Some(c) = self.layers[self.active_layer].next() {
-                        match self.system.chars_from_rules(&c) {
+                        match self.system.get(&c) {
                             Rewrite::Terminal(c) => return Some(c),
                             Rewrite::Variable(cs) => self.layers[self.active_layer - 1] = cs,
                         }
@@ -171,6 +171,17 @@ impl<'a> LSystemStochastic<'_> {
             );
         }
         LSystemStochastic { axiom, rules: map }
+    }
+
+    pub fn get(&'a self, c: &char, rng: &mut InnerRng) -> Rewrite<'a> {
+        if let Some(s) = self.rules.get(c) {
+            match s.choose_weighted(rng, |item| item.1) {
+                Ok(s) => Rewrite::Variable(s.0.chars()),
+                Err(e) => panic!("{}", e.to_string()),
+            }
+        } else {
+            Rewrite::Terminal(*c)
+        }
     }
 
     /// Construct a memory efficient iterator over the L-System at a given depth. This is most useful if one wants to try many different L-Systems or generate them dynamically at runtime.
@@ -248,17 +259,6 @@ impl<'a> LSystemBuilderStochastic<'a> {
             rng,
         }
     }
-
-    fn chars_from_rules(&mut self, c: &char) -> Rewrite<'a> {
-        if let Some(s) = self.system.rules.get(c) {
-            match s.choose_weighted(&mut self.rng, |item| item.1) {
-                Ok(s) => Rewrite::Variable(s.0.chars()),
-                Err(e) => panic!("{}", e.to_string()),
-            }
-        } else {
-            Rewrite::Terminal(*c)
-        }
-    }
 }
 
 impl<'a> Iterator for LSystemBuilderStochastic<'_> {
@@ -274,7 +274,7 @@ impl<'a> Iterator for LSystemBuilderStochastic<'_> {
                     return Some(c);
                 } else {
                     if let Some(c) = self.layers[self.active_layer].next() {
-                        match self.chars_from_rules(&c) {
+                        match self.system.get(&c, &mut self.rng) {
                             Rewrite::Terminal(c) => return Some(c),
                             Rewrite::Variable(cs) => self.layers[self.active_layer - 1] = cs,
                         }
