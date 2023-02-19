@@ -4,6 +4,7 @@ use crate::rng::InnerRng;
 use rand::{seq::SliceRandom, SeedableRng};
 use rustc_hash::FxHashMap;
 
+/// The output of a rewrite rule is either a character or a Chars iterator.
 #[derive(Debug, Clone)]
 pub enum Rewrite<'a> {
     Terminal(char),
@@ -35,6 +36,7 @@ impl<'a> LSystem<'a> {
         LSystem { axiom, rules: map }
     }
 
+    /// Return the rewrite rule for a give character.
     pub fn chars_from_rules(&self, c: &char) -> Rewrite<'a> {
         if let Some(s) = self.rules.get(c) {
             Rewrite::Variable(s.chars())
