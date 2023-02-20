@@ -4,21 +4,14 @@ use crate::rng::InnerRng;
 use rand::{seq::SliceRandom, SeedableRng};
 use rustc_hash::FxHashMap;
 
-// /// The output of a rewrite rule is either a character (for a terminal) pr
-// #[derive(Debug, Clone)]
-// pub enum Rewrite<'a> {
-//     Terminal(char),
-//     Variable(&'a str),
-// }
-
 /// The basic description of an L-System. Used to generate or iterate over its strings.
 /// ```
 /// # use lindenmayer::LSystem;
 /// let axiom = String::from("X");
 /// let rules = [('X', "F[X][+DX]-DX"), ('D', "F")];
-/// let depth = 2;
 /// let system = LSystem::new(axiom, &rules);
-/// assert_eq!("F[F[X][+DX]-DX][+FF[X][+DX]-DX]-FF[X][+DX]-DX", system.builder(depth).collect::<String>());
+///
+/// let depth = 2;
 /// assert_eq!("F[F[X][+DX]-DX][+FF[X][+DX]-DX]-FF[X][+DX]-DX", system.string(depth));
 /// ```
 #[derive(Debug, Clone)]
@@ -36,7 +29,7 @@ impl<'a> LSystem<'a> {
         LSystem { axiom, rules: map }
     }
 
-    /// Return the rewrite rule for a give character or None if the character is terminal
+    /// Return the rewrite rule for a given character or None if the character is a terminal
     pub fn get(&self, c: &char) -> Option<&str> {
         self.rules.get(c).copied()
     }
@@ -138,15 +131,16 @@ impl<'a> Iterator for LSystemBuilder<'_> {
 /// # use lindenmayer::builder::LSystemStochastic;
 /// let axiom = String::from("X");
 /// let rules = [
-///     ('X', &vec![("F[X][+DX]-DX", 1.0)]),
-///     ('D', &vec![("F", 2.0), ("FF", 1.0), ("D", 1.0)])
+///     ('X', vec![("F[X][+DX]-DX", 1.0_f32)]),
+///     ('D', vec![("F", 2.0), ("FF", 1.0), ("D", 1.0)])
 /// ];
+///
+/// let system = LSystemStochastic::new(axiom, &rules);
+///
 /// let depth = 2;
 /// let seed = Some(19251989);
 ///
-/// let system = LSystemStochastic::new(axiom, &rules);
-/// let builder = system.builder(depth, seed);
-/// let string = system.string(depth, seed);
+/// assert_eq!("F[F[X][+DX]-DX][+FFF[X][+DX]-DX]-FF[X][+DX]-DX", system.string(depth, seed))
 /// ```
 #[derive(Debug, Clone)]
 pub struct LSystemStochastic<'a> {
@@ -303,20 +297,6 @@ fn validity_test() {
     let e = system.builder(depth);
 
     assert!(e.zip(s.chars()).all(|(a, b)| a == b))
-}
-
-#[test]
-fn stochastic_test() {
-    let axiom = String::from("X");
-    let rules = [
-        ('X', vec![("F[X][+DX]-DX", 1.0)]),
-        ('D', vec![("F", 2.0), ("FF", 1.0), ("D", 1.0)]),
-    ];
-    let depth = 2;
-    let seed = Some(19251989);
-
-    let system = LSystemStochastic::new(axiom, &rules);
-    println!("{}", system.string(depth, seed));
 }
 
 // #[test]
