@@ -74,7 +74,7 @@ let cursor = Cursor::new((0.0, -200.0), (0.0, 1.0));
 let reader = SymbolReader::new(system, actions, cursor)
 ```
 
-It is not required that L-Systems be deterministic. In a stochastic L-System each symbol is rewritten by a rule chosen randomly from a set. These can be created with the `LSystemStochastic` struct with replacement part of the rules specified by `Vec<(&str,f32)>` with each entry containing the possible replacement and its probability relative to the other options. The interface is otherwise identical to the one for `LSystem`.
+It is not required that L-Systems be deterministic. In a stochastic L-System each symbol is rewritten by a rule chosen randomly from a set. These can be created with the `LSystemStochastic` struct with replacement part of the rules specified by `Vec<(&str,f32)>` with each entry containing the possible replacement and its probability relative to the other options. The interface is otherwise similar to the one for `LSystem` except that an `Option<u64>` is needed to seed the `.string()` and `.builder()` methods.
 
 ```rust
 use lindenmayer::builder::LSystemStochastic;
