@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fmt::Display};
 
-use crate::rng::InnerRng;
+use crate::rng::SystemRng;
 use rand::{seq::SliceRandom, SeedableRng};
 use rustc_hash::FxHashMap;
 
@@ -163,7 +163,7 @@ impl<'a> LSystemStochastic<'_> {
         LSystemStochastic { axiom, rules: map }
     }
 
-    pub fn get(&'a self, c: &char, rng: &mut InnerRng) -> Option<&str> {
+    pub fn get(&'a self, c: &char, rng: &mut SystemRng) -> Option<&str> {
         if let Some(s) = self.rules.get(c) {
             match s.choose_weighted(rng, |item| item.1) {
                 Ok(s) => Some(s.0),
@@ -183,8 +183,8 @@ impl<'a> LSystemStochastic<'_> {
     pub fn string(&self, depth: usize, seed: Option<u64>) -> String {
         let mut expression = self.axiom.clone();
         let mut rng = match seed {
-            Some(n) => InnerRng::seed_from_u64(n),
-            None => InnerRng::from_entropy(),
+            Some(n) => SystemRng::seed_from_u64(n),
+            None => SystemRng::from_entropy(),
         };
         for _ in 0..depth {
             let mut new = String::new();
@@ -230,7 +230,7 @@ pub struct LSystemBuilderStochastic<'a> {
     depth: usize,
     layers: Vec<std::str::Chars<'a>>,
     active_layer: usize,
-    rng: InnerRng,
+    rng: SystemRng,
 }
 
 impl<'a> LSystemBuilderStochastic<'a> {
@@ -238,8 +238,8 @@ impl<'a> LSystemBuilderStochastic<'a> {
         let mut layers = vec!["".chars(); depth + 1];
         layers[depth] = system.axiom.chars();
         let rng = match seed {
-            Some(n) => InnerRng::seed_from_u64(n),
-            None => InnerRng::from_entropy(),
+            Some(n) => SystemRng::seed_from_u64(n),
+            None => SystemRng::from_entropy(),
         };
         Self {
             system,

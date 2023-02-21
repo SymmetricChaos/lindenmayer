@@ -5,6 +5,7 @@ license = "MIT"
 authors = ["SymmetricChaos <ajfraebel@gmail.com>"]
 description = "Memory Efficient Lindenmayer-Systems"
 keywords = ["lindemayer", "l-system", "lsystem", "grammar", "formal-grammar"]
+categories = ["mathematics", "algorithms"]
 edition = "2021"
 repository = "https://github.com/SymmetricChaos/lindenmayer"
 
