@@ -57,23 +57,6 @@ One usage for the iterator is iterpreting the system as a sequence of instructio
 
 ![created with lindenmayer and nannou](https://github.com/SymmetricChaos/lindenmayer/blob/master/tree.png)
 
-To faciliate this lindenmayer includes the `SymbolReader` struct which takes in the builder, actions to interpret the symbols, and [a cursor](https://en.wikipedia.org/wiki/Turtle_graphics). The `SymbolReader` will then follow the instructions to move the cursor through 2D space according to the actions described, saving information as instructed. The image above was created by using the reader below to save line segments as the cursor moves and then draw with nannou.
-
-```rust
-use lindenmayer::{Action, SymbolReader, Cursor};
-
-let actions = HashMap::from([
-    ('X', Action::None),
-    ('F', Action::MoveForwardAndSave(60.0)),
-    ('+', Action::RotateDeg(-25.0)),
-    ('-', Action::RotateDeg(25.0)),
-    ('[', Action::PushCursor),
-    (']', Action::PopCursor),
-]);
-let cursor = Cursor::new((0.0, -200.0), (0.0, 1.0));
-let reader = SymbolReader::new(system, actions, cursor)
-```
-
 It is not required that L-Systems be deterministic. In a stochastic L-System each symbol is rewritten by a rule chosen randomly from a set. These can be created with the `LSystemStochastic` struct with replacement part of the rules specified by `Vec<(&str,f32)>` with each entry containing the possible replacement and its probability relative to the other options. The interface is otherwise similar to the one for `LSystem` except that an `Option<u64>` is needed to seed the `.string()` and `.builder()` methods.
 
 ```rust
