@@ -1,6 +1,6 @@
 [package]
 name = "lindenmayer"
-version = "0.2.0"
+version = "0.3.0"
 license = "MIT"
 authors = ["SymmetricChaos <ajfraebel@gmail.com>"]
 description = "Memory Efficient Lindenmayer-Systems"
