@@ -15,23 +15,23 @@ use rustc_hash::FxHashMap;
 /// assert_eq!("F[F[X][+DX]-DX][+FF[X][+DX]-DX]-FF[X][+DX]-DX", system.string(depth));
 /// ```
 #[derive(Debug, Clone)]
-pub struct LSystem<'a> {
+pub struct LSystem {
     pub axiom: String,
-    pub rules: FxHashMap<char, &'a str>,
+    pub rules: FxHashMap<char, String>,
 }
 
-impl<'a> LSystem<'a> {
-    pub fn new<S: AsRef<str>>(axiom: String, rules: &'a [(char, S)]) -> LSystem<'a> {
+impl LSystem {
+    pub fn new<S: ToString>(axiom: String, rules: &[(char, S)]) -> LSystem {
         let mut map = FxHashMap::default();
         for rule in rules {
-            map.insert(rule.0, rule.1.as_ref());
+            map.insert(rule.0, rule.1.to_string());
         }
         LSystem { axiom, rules: map }
     }
 
     /// Return the rewrite rule for a given character or None if the character is a terminal
-    pub fn get(&self, c: &char) -> Option<&str> {
-        self.rules.get(c).copied()
+    pub fn get(&self, c: &char) -> Option<&String> {
+        self.rules.get(c)
     }
 
     /// Construct a memory efficient iterator over the L-System at a given depth. This is most useful if one wants to try many different L-Systems or generate them dynamically at runtime.
@@ -57,13 +57,13 @@ impl<'a> LSystem<'a> {
     }
 }
 
-impl Display for LSystem<'_> {
+impl Display for LSystem {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut out = format!("Axiom: {}\nRules:\n", self.axiom);
         for i in self
             .rules
             .iter()
-            .map(|(k, v)| format!("   {} => {}\n", k, v))
+            .map(|(k, v)| format!("  {} => {}\n", k, v))
         {
             out.push_str(&i);
         }
@@ -73,14 +73,14 @@ impl Display for LSystem<'_> {
 
 #[derive(Debug, Clone)]
 pub struct LSystemBuilder<'a> {
-    system: &'a LSystem<'a>,
+    system: &'a LSystem,
     depth: usize,
     layers: Vec<std::str::Chars<'a>>,
     active_layer: usize,
 }
 
 impl<'a> LSystemBuilder<'a> {
-    pub fn new(system: &'a LSystem<'a>, depth: usize) -> Self {
+    pub fn new(system: &'a LSystem, depth: usize) -> Self {
         let mut layers = vec!["".chars(); depth + 1];
         layers[depth] = system.axiom.chars();
 
@@ -143,30 +143,27 @@ impl<'a> Iterator for LSystemBuilder<'_> {
 /// assert_eq!("F[F[X][+DX]-DX][+FFF[X][+DX]-DX]-FF[X][+DX]-DX", system.string(depth, seed))
 /// ```
 #[derive(Debug, Clone)]
-pub struct LSystemStochastic<'a> {
+pub struct LSystemStochastic {
     pub axiom: String,
-    pub rules: HashMap<char, Vec<(&'a str, f32)>>,
+    pub rules: HashMap<char, Vec<(String, f32)>>,
 }
 
-impl<'a> LSystemStochastic<'_> {
-    pub fn new<S: AsRef<str>>(
-        axiom: String,
-        rules: &'a [(char, Vec<(S, f32)>)],
-    ) -> LSystemStochastic<'a> {
+impl LSystemStochastic {
+    pub fn new<S: ToString>(axiom: String, rules: &[(char, Vec<(S, f32)>)]) -> LSystemStochastic {
         let mut map = HashMap::with_capacity(rules.len());
         for rule in rules {
             map.insert(
                 rule.0,
-                rule.1.iter().map(|(s, n)| (s.as_ref(), *n)).collect(),
+                rule.1.iter().map(|(s, n)| (s.to_string(), *n)).collect(),
             );
         }
         LSystemStochastic { axiom, rules: map }
     }
 
-    pub fn get(&'a self, c: &char, rng: &mut SystemRng) -> Option<&str> {
+    pub fn get(&self, c: &char, rng: &mut SystemRng) -> Option<&String> {
         if let Some(s) = self.rules.get(c) {
             match s.choose_weighted(rng, |item| item.1) {
-                Ok(s) => Some(s.0),
+                Ok(s) => Some(&s.0),
                 Err(e) => panic!("{}", e.to_string()),
             }
         } else {
@@ -191,7 +188,7 @@ impl<'a> LSystemStochastic<'_> {
             for c in expression.chars() {
                 if let Some(s) = self.rules.get(&c) {
                     match s.choose_weighted(&mut rng, |item| item.1) {
-                        Ok(pair) => new.push_str(pair.0),
+                        Ok(pair) => new.push_str(&pair.0),
                         Err(e) => panic!("{}", e.to_string()),
                     }
                 } else {
@@ -204,29 +201,38 @@ impl<'a> LSystemStochastic<'_> {
     }
 }
 
-// pub fn normalize_replacements(vec: &mut Vec<(&str, f32)>) {
-//     let s: f32 = vec.iter().map(|x| x.1).sum();
-//     for (r, n) in vec {
-//         *n /= s
-//     }
-// }
+impl Display for LSystemStochastic {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut out = format!("Axiom: {}\nRules", self.axiom);
+        let mut rule_strings = Vec::new();
+        for (c, replacements) in self.rules.iter() {
+            let mut s = String::new();
+            if replacements.len() == 1 {
+                let rep = &replacements[0].0;
+                s.push_str(&format!("\n  {c} => {rep}"));
+            } else {
+                s.push_str(&format!("\n  {c} =>"));
+                let norm: f32 = replacements.iter().map(|x| x.1).sum();
+                for (rep, prob) in replacements {
+                    let normed_prob = prob / norm;
+                    s.push_str(&format!("\n       {rep} ({normed_prob:.2})"));
+                }
+            }
+            rule_strings.push(s);
+        }
+        rule_strings.sort();
+        for s in rule_strings {
+            out.push_str(&s)
+        }
 
-// impl Display for LSystemStochastic<'_> {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         let mut out = format!("Axiom: {}\nRules:\n", self.axiom);
-//         for (c, replacements) in self.rules.iter() {
-//             out.push_str(&format!("{c} =>"));
-//             replacements.iter().map(f)
-//         }
-
-//         write!(f, "{}", out)
-//     }
-// }
+        write!(f, "{}", out)
+    }
+}
 
 /// Efficient stochastic L-System constructor that generate symbols one by one rather than building the entire String in memory. This is most useful if one wants to try many different L-Systems or generate them dynamically at runtime.
 #[derive(Debug, Clone)]
 pub struct LSystemBuilderStochastic<'a> {
-    system: &'a LSystemStochastic<'a>,
+    system: &'a LSystemStochastic,
     depth: usize,
     layers: Vec<std::str::Chars<'a>>,
     active_layer: usize,
@@ -279,24 +285,47 @@ impl<'a> Iterator for LSystemBuilderStochastic<'_> {
 }
 
 #[test]
+fn display_test() {
+    use crate::builder::LSystem;
+
+    let axiom = String::from("X");
+    let rules = [('X', "F[X][+DX]-DX"), ('D', "F")];
+
+    let system = LSystem::new(axiom, &rules);
+
+    assert_eq!(
+        "Axiom: X\nRules:\n  X => F[X][+DX]-DX\n  D => F\n",
+        system.to_string()
+    );
+}
+
+#[test]
 fn validity_test() {
     use crate::builder::LSystem;
 
     let axiom = String::from("X");
     let rules = [('X', "F[X][+DX]-DX"), ('D', "F")];
-    let depth = 3;
 
     let system = LSystem::new(axiom, &rules);
 
-    assert_eq!(
-        "Axiom: X\nRules:\n   X => F[X][+DX]-DX\n   D => F\n",
-        system.to_string()
-    );
+    let depth = 3;
 
     let s = system.string(depth);
     let e = system.builder(depth);
 
     assert!(e.zip(s.chars()).all(|(a, b)| a == b))
+}
+
+#[test]
+fn stochastic_display_test() {
+    let axiom = String::from("X");
+    let rules = [
+        ('X', vec![("F[X][+DX]-DX", 1.0_f32)]),
+        ('D', vec![("F", 2.0), ("FF", 1.0), ("D", 1.0)]),
+    ];
+
+    let system = LSystemStochastic::new(axiom, &rules);
+    println!("{}", system)
 }
 
 // #[test]
