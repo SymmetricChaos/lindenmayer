@@ -71,6 +71,8 @@ impl Display for LSystem {
     }
 }
 
+/// Efficient L-System constructor that generate symbols one by one rather than building the entire String in memory. This is most useful if one wants to try many different L-Systems or generate them dynamically at runtime.
+
 #[derive(Debug, Clone)]
 pub struct LSystemBuilder<'a> {
     system: &'a LSystem,
@@ -229,7 +231,7 @@ impl Display for LSystemStochastic {
     }
 }
 
-/// Efficient stochastic L-System constructor that generate symbols one by one rather than building the entire String in memory. This is most useful if one wants to try many different L-Systems or generate them dynamically at runtime.
+/// Efficient stochastic L-System constructor that generate symbols one by one rather than building the entire String in memory.
 #[derive(Debug, Clone)]
 pub struct LSystemBuilderStochastic<'a> {
     system: &'a LSystemStochastic,
